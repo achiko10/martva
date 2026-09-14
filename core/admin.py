@@ -6,6 +6,11 @@ from .models import (
 )
 
 
+admin.site.site_header = "OT Progress — მართვის პანელი"
+admin.site.site_title = "OT Progress პორტალი"
+admin.site.index_title = "სისტემის მონაცემთა ბაზა და მართვა"
+
+
 @admin.register(TherapistProfile)
 class TherapistProfileAdmin(admin.ModelAdmin):
     list_display = ["user", "title", "clinic_name", "phone", "is_admin_role"]
