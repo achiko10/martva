@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}ავტორიზაცია — OT Progress{% endblock %}
+
+{% block content %}
+<div class="min-h-[75vh] flex items-center justify-center py-6 px-4"> <div class="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-8"> <!-- Header --> <div class="text-center mb-8"> <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-2xl shadow-lg shadow-blue-500/30 mb-3"> OT
+            </div> <h1 class="text-2xl font-black text-slate-900 tracking-tight">OT Progress</h1> <p class="text-sm text-slate-500 mt-1">ოკუპაციური თერაპიის მართვის სისტემა</p> </div> <!-- Form --> <form method="post" action="{% url 'login' %}" class="space-y-4"> {% csrf_token %}
+            
+            <div> <label for="id_username" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">მომხმარებელი</label> <input type="text" name="username" id="id_username" required
+                       class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/50 text-slate-900 transition"
+                       placeholder="შეიყვანეთ სახელი"> </div> <div> <label for="id_password" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">პაროლი</label> <input type="password" name="password" id="id_password" required
+                       class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/50 text-slate-900 transition"
+                       placeholder="••••••••"> </div> <button type="submit"
+                    class="w-full mt-2 py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/30 transition transform active:scale-[0.98]"> სისტემაში შესვლა
+            </button> </form> <!-- Quick Demo Fill --> <div class="mt-8 pt-6 border-t border-slate-100"> <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider text-center mb-3"> სწრაფი შესვლა (დემო ანგარიშები)
+            </div> <div class="grid grid-cols-2 gap-2.5"> <button type="button" onclick="fillCreds('therapist', 'therapist123')"
+                        class="p-2.5 rounded-xl border border-blue-100 bg-blue-50/50 hover:bg-blue-100/60 text-blue-800 text-left transition group"> <div class="text-xs font-bold flex items-center"> <span class="mr-1">‍️</span> თერაპევტი
+                    </div> <div class="text-[11px] text-blue-600/80 mt-0.5">ანა მაისურაძე</div> </button> <button type="button" onclick="fillCreds('admin', 'admin123')"
+                        class="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-800 text-left transition group"> <div class="text-xs font-bold flex items-center"> <span class="mr-1">️</span> ადმინი
+                    </div> <div class="text-[11px] text-slate-500 mt-0.5">სისტემური</div> </button> </div> </div> </div>
+</div> <script> function fillCreds(u, p) {
+        document.getElementById('id_username').value = u;
+        document.getElementById('id_password').value = p;
+    }
+</script>
+{% endblock %}

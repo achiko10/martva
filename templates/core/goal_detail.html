@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}{{ goal.smart_summary }} — მიზნის მართვა — OT Progress{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6"> <!-- Top Breadcrumbs & Title Card --> <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm"> <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"> <div> <div class="flex items-center space-x-2 text-xs font-bold text-slate-400"> <a href="{% url 'beneficiary_detail' beneficiary.id %}" class="hover:text-blue-600"> ← {{ beneficiary.full_name }}
+                    </a> <span>•</span> <span class="text-slate-600">{{ goal.get_domain_display }}</span> </div> <h1 class="text-xl sm:text-2xl font-black text-slate-900 mt-1"> {{ goal.occupation|default:goal.description }}
+                </h1> {% if goal.environment_context %}
+                <p class="text-xs text-slate-500 mt-0.5"> გარემო/კონტექსტი: <strong class="text-slate-700">{{ goal.environment_context }}</strong> </p> {% endif %}
+            </div> <div class="flex items-center space-x-2"> {% if goal.status == 'active' %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"> ● აქტიური
+                </span> {% elif goal.status == 'achieved' %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"> მიღწეულია
+                </span> {% elif goal.status == 'modified' %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800"> მოდიფიცირებული
+                </span> {% else %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700"> {{ goal.get_status_display }}
+                </span> {% endif %}
+            </div> </div> <!-- Measurable Progress Card (Gauge & Progress Bar) --> <div class="mt-6 p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-3"> <div class="flex items-center justify-between"> <div> <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">SMART პროგრესის მაჩვენებელი</span> <div class="flex items-baseline space-x-2 mt-0.5"> <span class="text-2xl sm:text-3xl font-black text-blue-600"> {{ goal.current_numeric|floatformat:0 }}{{ goal.unit_label }}
+                        </span> <span class="text-xs text-slate-400 font-semibold"> (სამიზნე: {{ goal.target_numeric|floatformat:0 }}{{ goal.unit_label }})
+                        </span> </div> </div> <div class="text-right"> <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">შესრულება</span> <div class="text-2xl sm:text-3xl font-black {% if goal.progress_percentage >= 100 %}text-emerald-600{% else %}text-slate-800{% endif %}"> {{ goal.progress_percentage }}%
+                    </div> </div> </div> <!-- Visual Progress Bar --> <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden p-0.5"> <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500"
+                     style="width: {{ goal.progress_percentage }}%;"></div> </div> <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 font-semibold"> <div>საწყისი (Baseline): <strong>{{ goal.baseline_numeric|floatformat:0 }}{{ goal.unit_label }}</strong></div> <div>დახმარების კრიტერიუმი: <strong>{{ goal.criteria_type|default:"მინიშნებით" }}</strong></div> <div>ვადა: <strong>{{ goal.target_date|date:"d.m.Y"|default:"განუსაზღვრელი" }}</strong></div> </div> </div> </div> <!-- 2 Columns: Live Control Panel & Session History --> <div class="grid grid-cols-1 md:grid-cols-3 gap-6"> <!-- Left 1 Col: Quick Actions & Status Control --> <div class="space-y-4"> <!-- Quick Progress Update Card --> <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3"> <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center"> პროგრესის სწრაფი განახლება
+                </h2> <form method="post" class="space-y-2.5"> {% csrf_token %}
+                    <input type="hidden" name="action" value="update_progress"> <div> <label class="block text-[11px] font-bold text-slate-600 mb-1"> დღევანდელი მაჩვენებელი ({{ goal.unit_label }})
+                        </label> <div class="flex items-center space-x-2"> <input type="number" step="any" name="current_numeric" value="{{ goal.current_numeric|floatformat:0 }}" required
+                                   class="w-full p-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"> <button type="submit"
+                                    class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition whitespace-nowrap"> შენახვა
+                            </button> </div> </div> </form> </div> <!-- Status Switcher Card --> <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3"> <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center"> <span class="mr-1.5">️</span> მიზნის სტატუსი
+                </h2> <form method="post" class="space-y-2"> {% csrf_token %}
+                    <input type="hidden" name="action" value="update_status"> <select name="status" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"> {% for val, label in status_choices %}
+                        <option value="{{ val }}" {% if goal.status == val %}selected{% endif %}>{{ label }}</option> {% endfor %}
+                    </select> <button type="submit" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition"> სტატუსის შეცვლა
+                    </button> </form> </div> <!-- Goal Modification Accordion --> <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm"> <details class="group"> <summary class="text-xs font-bold text-slate-700 cursor-pointer list-none flex items-center justify-between"> <span>️ პარამეტრების შეცვლა</span> <span class="text-slate-400 group-open:rotate-180 transition transform">▼</span> </summary> <form method="post" class="space-y-3 pt-3 border-t border-slate-100 mt-2 text-xs"> {% csrf_token %}
+                        <input type="hidden" name="action" value="modify_goal"> <div> <label class="block text-[11px] font-bold text-slate-600 mb-0.5">აქტივობა / ოკუპაცია</label> <input type="text" name="occupation" value="{{ goal.occupation }}" class="w-full p-2 rounded-xl border border-slate-200 text-xs"> </div> <div> <label class="block text-[11px] font-bold text-slate-600 mb-0.5">გარემო</label> <input type="text" name="environment_context" value="{{ goal.environment_context }}" class="w-full p-2 rounded-xl border border-slate-200 text-xs"> </div> <div class="grid grid-cols-2 gap-2"> <div> <label class="block text-[11px] font-bold text-slate-600 mb-0.5">საწყისი</label> <input type="number" step="any" name="baseline_numeric" value="{{ goal.baseline_numeric }}" class="w-full p-2 rounded-xl border border-slate-200 text-xs"> </div> <div> <label class="block text-[11px] font-bold text-slate-600 mb-0.5">სამიზნე</label> <input type="number" step="any" name="target_numeric" value="{{ goal.target_numeric }}" class="w-full p-2 rounded-xl border border-slate-200 text-xs"> </div> </div> <div> <label class="block text-[11px] font-bold text-slate-600 mb-0.5">საზომი ერთეული</label> <input type="text" name="unit_label" value="{{ goal.unit_label }}" class="w-full p-2 rounded-xl border border-slate-200 text-xs"> </div> <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition"> შენახვა
+                        </button> </form> </details> </div> </div> <!-- Right 2 Cols: Session History & Timeline --> <div class="md:col-span-2 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4"> <div class="flex items-center justify-between pb-2 border-b border-slate-100"> <h2 class="text-sm font-bold text-slate-900 flex items-center"> სესიების ისტორია და დინამიკა ({{ session_goals.count }})
+                </h2> <a href="{% url 'beneficiary_session_create' beneficiary.id %}" class="text-xs font-bold text-blue-600 hover:text-blue-800"> + სესიაში გამოყენება
+                </a> </div> <!-- Timeline items --> <div class="space-y-3"> {% for sg in session_goals %}
+                <div class="p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 flex items-start justify-between gap-3 text-xs hover:bg-slate-50 transition"> <div class="space-y-1"> <div class="flex items-center space-x-2"> <span class="font-bold text-slate-900"> {{ sg.session.date|date:"d.m.Y" }}
+                            </span> <span class="text-slate-300">•</span> <span class="text-slate-500 font-medium"> სესია: {{ sg.session.duration_minutes }} წთ ({{ sg.session.get_final_state_display }})
+                            </span> </div> {% if sg.notes %}
+                        <p class="text-slate-600 italic"> "{{ sg.notes }}"
+                        </p> {% endif %}
+                    </div> <div class="text-right flex-shrink-0"> {% if sg.recorded_numeric is not None %}
+                        <div class="text-sm font-black text-blue-700"> {{ sg.recorded_numeric|floatformat:0 }}{{ goal.unit_label }}
+                        </div> {% elif sg.progress_value %}
+                        <div class="text-xs font-bold text-slate-800"> {{ sg.progress_value }}
+                        </div> {% endif %}
+
+                        {% if sg.prompt_level %}
+                        <span class="text-[10px] font-semibold text-slate-500 block"> {{ sg.prompt_level }}
+                        </span> {% endif %}
+                    </div> </div> {% empty %}
+                <div class="py-12 text-center text-xs text-slate-400"> ამ მიზანზე სესიის ჩანაწერები ჯერ არ ფიქსირდება.
+                </div> {% endfor %}
+            </div> </div> </div> </div>
+{% endblock %}

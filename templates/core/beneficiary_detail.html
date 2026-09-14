@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}{{ beneficiary.full_name }} — OT Progress{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl mx-auto"> <!-- Top Card: Child Info & Quick Actions --> <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"> <div class="flex items-center space-x-4"> <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-800 font-black text-xl flex items-center justify-center"> {{ beneficiary.first_name|slice:":1" }}{{ beneficiary.last_name|slice:":1" }}
+            </div> <div> <div class="flex items-center space-x-2"> <h1 class="text-xl sm:text-2xl font-black text-slate-900">{{ beneficiary.full_name }}</h1> <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">აქტიური</span> </div> <div class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5"> <span>ასაკი: <strong class="text-slate-700">{{ beneficiary.age_display }}</strong></span> <span>•</span> <span>დაბ. თარიღი: {{ beneficiary.date_of_birth|date:"d.m.Y" }}</span> <span>•</span> <span>თერაპევტი: {{ beneficiary.therapist|default:"—" }}</span> </div> </div> </div>         <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto">
+            <a href="{% url 'beneficiary_session_create' beneficiary.id %}"
+               class="px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition flex items-center justify-center">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                + ახალი სესია
+            </a>
+            <a href="{% url 'monthly_report_create' beneficiary.id %}"
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center justify-center">
+                თვის ანგარიში
+            </a>
+            <a href="{% url 'progress' beneficiary.id %}"
+               class="px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition flex items-center justify-center">
+                ანალიტიკა
+            </a>
+            <a href="{% url 'beneficiary_edit' beneficiary.id %}"
+               class="px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition flex items-center justify-center">
+                რედაქტირება
+            </a>
+        </div> </div> <!-- Active Goals Panel (Always visible on top) --> <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3"> <div class="flex items-center justify-between"> <h2 class="text-sm font-bold text-slate-900 flex items-center"> აქტიური მიზნები
+            </h2> <button onclick="document.getElementById('goal-modal').classList.remove('hidden')"
+                    class="text-xs font-bold text-blue-600 hover:text-blue-800 transition"> + მიზნის დამატება
+            </button> </div> <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"> {% for g in goals %}
+            {% if g.status == 'active' %}
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 hover:border-blue-200 transition space-y-2 text-xs"> <div class="flex items-start justify-between gap-2"> <div class="space-y-1"> <div class="flex items-center space-x-1.5 flex-wrap gap-1"> <span class="px-2 py-0.5 rounded-md bg-blue-100/70 text-blue-800 text-[10px] font-bold"> {{ g.get_domain_display }}
+                            </span> {% if g.target_date %}
+                            <span class="text-[10px] text-slate-400 font-semibold"> ვადა: {{ g.target_date|date:"d.m.Y" }}
+                            </span> {% endif %}
+                        </div> <div class="font-bold text-slate-900 leading-snug"> {{ g.description }}
+                        </div> </div> <!-- Mini status toggle --> <form method="post" class="inline flex-shrink-0"> {% csrf_token %}
+                        <input type="hidden" name="action" value="update_goal_status"> <input type="hidden" name="goal_id" value="{{ g.id }}"> <input type="hidden" name="status" value="achieved"> <button type="submit" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 rounded-lg text-[10px] font-bold transition flex items-center shadow-sm" title="მიღწეულად მონიშვნა"> მიღწეულია
+                        </button> </form> </div> <!-- Progress Bar & Values --> <div class="space-y-1.5 pt-1"> <div class="flex items-center justify-between text-[11px]"> <span class="text-slate-500 font-semibold">პროგრესი:</span> <div class="flex items-center space-x-1.5"> <span class="font-bold text-blue-700">{{ g.current_numeric|floatformat:0 }}{{ g.unit_label }}</span> <span class="text-slate-400">/ {{ g.target_numeric|floatformat:0 }}{{ g.unit_label }}</span> <span class="font-extrabold text-slate-800">({{ g.progress_percentage }}%)</span> </div> </div> <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden"> <div class="bg-blue-600 h-full rounded-full transition-all duration-300" style="width: {{ g.progress_percentage }}%;"></div> </div> </div> <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]"> <span class="text-slate-500"> {{ g.criteria_type|default:"მინიშნებით" }}
+                    </span> <a href="{% url 'goal_detail' g.id %}" class="font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center"> <span>მართვა & ისტორია</span> <span class="ml-1">→</span> </a> </div> </div> {% endif %}
+            {% empty %}
+            <div class="col-span-full py-4 text-center text-xs text-slate-400"> აქტიური მიზნები ჯერ არ არის დამატებული.
+            </div> {% endfor %}
+        </div> </div> <!-- 2 Primary Sections: SESSIONS & REPORTS --> <div class="grid grid-cols-1 md:grid-cols-3 gap-6"> <!-- Left 2 Cols: Sessions History --> <div class="md:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3"> <div class="flex items-center justify-between pb-2 border-b border-slate-100"> <h2 class="text-sm font-bold text-slate-900 flex items-center"> <span class="mr-1.5">⏱️</span> სესიების ისტორია ({{ sessions.count }})
+                </h2> <a href="{% url 'beneficiary_session_create' beneficiary.id %}" class="text-xs font-bold text-blue-600 hover:text-blue-800"> + სესია
+                </a> </div> <div class="divide-y divide-slate-100"> {% for s in sessions %}
+                <div class="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/60 rounded-xl px-2 transition"> <div class="flex items-center space-x-3"> <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs"> {{ s.duration_minutes }}'
+                        </div> <div> <div class="text-xs font-bold text-slate-900"> {{ s.date|date:"d.m.Y" }}
+                            </div> <div class="text-[11px] text-slate-500 mt-0.5"> მდგომარეობა: <strong>{{ s.get_final_state_display }}</strong> {% if s.notes %} • <span class="italic">"{{ s.notes }}"</span>{% endif %}
+                            </div> </div> </div> <a href="{% url 'session_detail' s.id %}" class="px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 transition"> ნახვა
+                    </a> </div> {% empty %}
+                <div class="py-8 text-center text-xs text-slate-400"> სესიები ჯერ არ არის ჩაწერილი.
+                </div> {% endfor %}
+            </div> </div> <!-- Right Col: Monthly Reports List --> <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3"> <div class="flex items-center justify-between pb-2 border-b border-slate-100"> <h2 class="text-sm font-bold text-slate-900 flex items-center"> თვის ანგარიშები
+                </h2> <a href="{% url 'monthly_report_create' beneficiary.id %}" class="text-xs font-bold text-blue-600 hover:text-blue-800"> + შექმნა
+                </a> </div> <div class="space-y-2"> {% for r in reports %}
+                <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex flex-col justify-between space-y-2"> <div class="flex items-start justify-between"> <div> <div class="text-xs font-bold text-slate-900">{{ r.period_display }}</div> <div class="text-[10px] text-slate-400">{{ r.sessions_count }} სესია</div> </div> {% if r.is_finalized %}
+                        <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800">დამტკიცებული</span> {% else %}
+                        <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800">მონახაზი</span> {% endif %}
+                    </div> <div class="grid grid-cols-2 gap-1.5 pt-1"> <a href="{% url 'monthly_report_edit' r.id %}"
+                           class="py-1.5 px-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-[11px] font-bold rounded-lg text-center transition"> რედაქტორი
+                        </a> <a href="{% url 'monthly_report_pdf' r.id %}" target="_blank"
+                           class="py-1.5 px-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg text-center transition"> PDF
+                        </a> </div> </div> {% empty %}
+                <div class="py-6 text-center text-xs text-slate-400"> ანგარიშები ჯერ არ არის.
+                </div> {% endfor %}
+            </div> </div> </div> <!-- Collapsible Accordion for Clinical Assessment & Profiles (If needed) --> <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm"> <details class="group"> <summary class="text-xs font-bold text-slate-600 cursor-pointer list-none flex items-center justify-between py-1"> <span class="flex items-center"> სრული სენსორული და ოკუპაციური ანკეტა (დაკვირვებები)
+                </span> <span class="text-slate-400 group-open:rotate-180 transition transform">▼</span> </summary> <div class="pt-4 space-y-4 border-t border-slate-100 mt-3 text-xs"> <!-- Notes --> <div> <span class="font-bold text-slate-700 block mb-1">ანამნეზი და კლინიკური ჩანაწერები:</span> <div class="p-3 rounded-xl bg-slate-50 text-slate-600 leading-relaxed border border-slate-100"> {{ beneficiary.notes|default:"დამატებითი ჩანაწერი არ არის შეყვანილი."|linebreaksbr }}
+                    </div> </div> <!-- Link to Edit Profiles if needed --> <div class="pt-2 flex justify-end"> <a href="{% url 'beneficiary_edit' beneficiary.id %}" class="text-blue-600 font-bold hover:underline"> ანკეტის რედაქტირება →
+                    </a> </div> </div> </details> </div> <!-- Interactive PEO & SMART Goal Builder Modal --> <div id="goal-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden overflow-y-auto"> <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-xl w-full border border-slate-100 shadow-2xl space-y-4 my-8 max-h-[90vh] overflow-y-auto"> <div class="flex items-center justify-between pb-2 border-b border-slate-100"> <div> <h3 class="text-sm font-black text-slate-900 flex items-center"> SMART მიზნის დასახვა (PEO მოდელი)
+                    </h3> <p class="text-[11px] text-slate-500 mt-0.5">პიროვნება (P) • გარემო (E) • ოკუპაცია/აქტივობა (O)</p> </div> <button onclick="document.getElementById('goal-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 font-bold p-1"></button> </div> <!-- 1-Click Fast Presets (სწრაფი შაბლონები) --> <div> <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">სწრაფი SMART შაბლონები (1-კლიკით ჩასმა):</span> <div class="flex flex-wrap gap-1.5"> <button type="button" onclick="applyGoalPreset('self_care', 'კოვზით დამოუკიდებლად კვება', 'სადილის დროს, ადაპტირებულ სკამზე', 'მინიმალური ვერბალური მითითებით', 'percentage', 20, 80, '3 თვე')"
+                            class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold rounded-lg border border-amber-200 transition"> კოვზით ჭამა (20% → 80%)
+                    </button> <button type="button" onclick="applyGoalPreset('play', 'თანატოლთან რიგის დაცვა სამაგიდო თამაშში', 'თამაშის კუთხეში, მშვიდ გარემოში', 'ვერბალური შეხსენებით', 'frequency', 1, 5, '3 თვე')"
+                            class="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold rounded-lg border border-purple-200 transition"> რიგის დაცვა (1 → 5 ცდა)
+                    </button> <button type="button" onclick="applyGoalPreset('sensory_regulation', 'დამამშვიდებელი სენსორული სტრატეგიის გამოყენება', 'სენსორული გადატვირთვისას, დასვენების კუთხეში', 'ვიზუალური ბარათით', 'percentage', 30, 85, '1 თვე')"
+                            class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-bold rounded-lg border border-blue-200 transition"> თვითრეგულაცია (30% → 85%)
+                    </button> <button type="button" onclick="applyGoalPreset('attention', 'მაგიდასთან დავალებაზე ყურადღების შენარჩუნება', 'სასწავლო ზონაში, ყურადღების გადამტანი სტიმულების გარეშე', 'დამოუკიდებლად', 'duration', 2, 10, '3 თვე')"
+                            class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-lg border border-emerald-200 transition"> ყურადღება (2 წთ → 10 წთ)
+                    </button> </div> </div> <!-- SMART + PEO Form --> <form method="post" id="smart-goal-form" class="space-y-3.5"> {% csrf_token %}
+                <input type="hidden" name="action" value="create_goal"> <!-- Domain --> <div> <label class="block text-xs font-bold text-slate-700 mb-1">ოკუპაციური სფერო</label> <select name="domain" id="goal-domain" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"> {% for val, label in domain_choices %}
+                        <option value="{{ val }}">{{ label }}</option> {% endfor %}
+                    </select> </div> <!-- Occupation (O) --> <div> <label class="block text-xs font-bold text-slate-700 mb-1"> ოკუპაცია / აქტივობა (Occupation) *
+                    </label> <input type="text" name="occupation" id="goal-occupation" required
+                           placeholder="მაგ: კოვზით ჭამა, ხელების დაბანა, მაკრატლით გამოჭრა, ფაზლის აწყობა"
+                           class="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                           oninput="updateGoalPreview()"> </div> <!-- Environment & Adaptation (E) --> <div> <label class="block text-xs font-bold text-slate-700 mb-1"> გარემო და ადაპტაცია (Environment & Context)
+                    </label> <input type="text" name="environment_context" id="goal-environment"
+                           placeholder="მაგ: სახლში/ბაღში, ადაპტირებული სახელურით, სენსორულ ოთახში, მშვიდ ფონზე"
+                           class="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                           oninput="updateGoalPreview()"> </div> <!-- Measurable SMART Criteria (Type & Values) --> <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2.5"> <span class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block"> გაზომვადი პარამეტრები (SMART Measurable):
+                    </span> <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"> <div> <label class="block text-[11px] font-bold text-slate-600 mb-1">გაზომვის ტიპი</label> <select name="measurement_type" id="goal-meas-type" class="w-full p-2 rounded-lg border border-slate-200 text-xs bg-white" onchange="onMeasurementTypeChange()"> <option value="percentage">პროცენტი (%)</option> <option value="duration">ხანგრძლივობა (წუთი)</option> <option value="frequency">სიხშირე (მცდელობები)</option> <option value="prompt_level">დახმარების კიბე</option> </select> </div> <div> <label class="block text-[11px] font-bold text-slate-600 mb-1">საწყისი (Baseline)</label> <div class="flex items-center space-x-1"> <input type="number" step="any" name="baseline_numeric" id="goal-baseline-num" value="0"
+                                       class="w-full p-2 rounded-lg border border-slate-200 text-xs font-bold" oninput="updateGoalPreview()"> <span class="text-xs font-bold text-slate-500 unit-label-display">%</span> </div> </div> <div> <label class="block text-[11px] font-bold text-slate-600 mb-1">სამიზნე (Target)</label> <div class="flex items-center space-x-1"> <input type="number" step="any" name="target_numeric" id="goal-target-num" value="80" required
+                                       class="w-full p-2 rounded-lg border border-slate-200 text-xs font-bold" oninput="updateGoalPreview()"> <span class="text-xs font-bold text-slate-500 unit-label-display">%</span> </div> </div> </div> <input type="hidden" name="unit_label" id="goal-unit-label" value="%"> </div> <!-- Target Timeline (T) --> <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"> <div> <label class="block text-xs font-bold text-slate-700 mb-1"> დახმარების კრიტერიუმი (Prompts)
+                        </label> <select name="criteria_type" id="goal-prompts" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs bg-white" onchange="updateGoalPreview()"> <option value="დამოუკიდებლად">დამოუკიდებლად (დახმარების გარეშე)</option> <option value="მინიმალური ვერბალური მითითებით" selected>მინიმალური ვერბალური მითითებით</option> <option value="ჟესტური / ვიზუალური მინიშნებით">ჟესტური / ვიზუალური მინიშნებით</option> <option value="მსუბუქი ფიზიკური მხარდაჭერით">მსუბუქი ფიზიკური მხარდაჭერით</option> </select> </div> <div> <label class="block text-xs font-bold text-slate-700 mb-1"> სამიზნე ვადა (Time-bound)
+                        </label> <div class="flex items-center space-x-2"> <button type="button" onclick="setGoalTimeline(1)" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex-1 transition">1 თვე</button> <button type="button" onclick="setGoalTimeline(3)" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl flex-1 transition border border-blue-200">3 თვე</button> <button type="button" onclick="setGoalTimeline(6)" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex-1 transition">6 თვე</button> </div> <input type="hidden" name="target_date" id="goal-target-date"> </div> </div> <!-- LIVE SMART PREVIEW BOX --> <div class="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-1"> <span class="text-[10px] uppercase font-bold text-blue-600 block"> კლინიკური SMART ფორმულირება (წინასწარი ხედვა):</span> <p id="goal-live-preview" class="text-xs text-blue-950 font-semibold leading-relaxed"> ბენეფიციარი შეძლებს...
+                    </p> <input type="hidden" name="description" id="goal-full-description"> </div> <div class="pt-2 flex justify-end space-x-2 border-t border-slate-100"> <button type="button" onclick="document.getElementById('goal-modal').classList.add('hidden')"
+                            class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"> გაუქმება
+                    </button> <button type="submit"
+                            class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition"> მიზნის დამატება
+                    </button> </div> </form> </div> </div> <!-- Script for Live SMART Goal Generator --> <script> function onMeasurementTypeChange() {
+        const mtype = document.getElementById('goal-meas-type').value;
+        const unitDisplays = document.querySelectorAll('.unit-label-display');
+        const unitInput = document.getElementById('goal-unit-label');
+        const baseNum = document.getElementById('goal-baseline-num');
+        const targetNum = document.getElementById('goal-target-num');
+
+        if (mtype === 'percentage') {
+            unitInput.value = '%';
+            baseNum.value = '0';
+            targetNum.value = '80';
+        } else if (mtype === 'duration') {
+            unitInput.value = ' წთ';
+            baseNum.value = '2';
+            targetNum.value = '10';
+        } else if (mtype === 'frequency') {
+            unitInput.value = ' ცდა';
+            baseNum.value = '1';
+            targetNum.value = '5';
+        } else if (mtype === 'prompt_level') {
+            unitInput.value = ' დონე';
+            baseNum.value = '1';
+            targetNum.value = '4';
+        }
+
+        unitDisplays.forEach(el => el.textContent = unitInput.value);
+        updateGoalPreview();
+    }
+
+    function updateGoalPreview() {
+        const occ = document.getElementById('goal-occupation').value.trim();
+        const env = document.getElementById('goal-environment').value.trim();
+        const prompts = document.getElementById('goal-prompts').value;
+        const targetNum = document.getElementById('goal-target-num').value.trim();
+        const unit = document.getElementById('goal-unit-label').value;
+
+        let preview = "ბენეფიციარი შეძლებს: ";
+        if (occ) {
+            preview += `<strong>${occ}</strong>`;
+        } else {
+            preview += "[ოკუპაცია/აქტივობა]";
+        }
+
+        if (env) {
+            preview += ` (${env})`;
+        }
+
+        if (prompts) {
+            preview += `, ${prompts}`;
+        }
+
+        if (targetNum) {
+            preview += ` — სამიზნე: ${targetNum}${unit}`;
+        }
+
+        preview += ".";
+
+        document.getElementById('goal-live-preview').innerHTML = preview;
+        // Text for storage
+        const plainText = preview.replace(/<[^>]*>?/gm, '');
+        document.getElementById('goal-full-description').value = plainText;
+    }
+
+    function applyGoalPreset(domain, occupation, env, prompts, mtype, baseVal, targetVal, timelineStr) {
+        document.getElementById('goal-domain').value = domain;
+        document.getElementById('goal-occupation').value = occupation;
+        document.getElementById('goal-environment').value = env;
+        document.getElementById('goal-prompts').value = prompts;
+
+        document.getElementById('goal-meas-type').value = mtype;
+        onMeasurementTypeChange();
+        document.getElementById('goal-baseline-num').value = baseVal;
+        document.getElementById('goal-target-num').value = targetVal;
+
+        if (timelineStr.includes('1')) setGoalTimeline(1);
+        else if (timelineStr.includes('3')) setGoalTimeline(3);
+        else if (timelineStr.includes('6')) setGoalTimeline(6);
+
+        updateGoalPreview();
+    }
+
+    function setGoalTimeline(months) {
+        const now = new Date();
+        now.setMonth(now.getMonth() + months);
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        document.getElementById('goal-target-date').value = `${y}-${m}-${d}`;
+    }
+
+    // Initialize default timeline to 3 months
+    setGoalTimeline(3);
+    updateGoalPreview();
+    </script> </div>
+{% endblock %}

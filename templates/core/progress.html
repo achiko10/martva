@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ beneficiary.full_name }} — პროგრესის ანალიტიკა — OT Progress{% endblock %}
+
+{% block content %}
+<div class="space-y-6"> <!-- Top Header --> <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"> <div> <a href="{% url 'beneficiary_detail' beneficiary.id %}" class="text-xs font-bold text-slate-500 hover:text-slate-800 transition"> ← დაბრუნება ბენეფიციარის პროფილში
+            </a> <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1"> {{ beneficiary.full_name }} — პროგრესის დინამიკა
+            </h1> <p class="text-xs text-slate-500 mt-0.5">სენსორული ინტერვენციების, დახმარების დონისა და ჩართულობის ევოლუცია</p> </div> <div class="flex items-center space-x-3"> <a href="{% url 'beneficiary_session_create' beneficiary.id %}"
+               class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"> + ახალი სესია
+            </a> <a href="{% url 'monthly_report_create' beneficiary.id %}"
+               class="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition"> თვის ანგარიშის მომზადება
+            </a> </div> </div> <!-- Overview Stat Cards --> <div class="grid grid-cols-2 sm:grid-cols-4 gap-4"> <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm"> <div class="text-xs font-bold uppercase text-slate-400">სულ სესიები</div> <div class="text-2xl font-black text-slate-900 mt-1">{{ sessions_count }}</div> <div class="text-[11px] text-slate-500 mt-0.5">აღრიცხული სესია</div> </div> <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm"> <div class="text-xs font-bold uppercase text-slate-400">აქტიური მიზნები</div> <div class="text-2xl font-black text-blue-600 mt-1">{{ active_goals.count }}</div> <div class="text-[11px] text-slate-500 mt-0.5">მიმდინარე მიმართულება</div> </div> <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm"> <div class="text-xs font-bold uppercase text-slate-400">სენსორული სისტემები</div> <div class="text-2xl font-black text-teal-600 mt-1">{{ system_counts|length }}</div> <div class="text-[11px] text-slate-500 mt-0.5">გამოყენებული სისტემა</div> </div> <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm"> <div class="text-xs font-bold uppercase text-slate-400">ტოპ აქტივობა</div> <div class="text-base font-bold text-slate-800 mt-1 truncate"> {{ top_activities.0.0|default:"—" }}
+            </div> <div class="text-[11px] text-slate-500 mt-0.5"> {% if top_activities.0.1 %}{{ top_activities.0.1 }} სესიაზე{% else %}მონაცემი არ არის{% endif %}
+            </div> </div> </div> <!-- Charts Row 1: Duration & Assistance Trends --> <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"> <!-- Chart 1: Continuous Engagement Duration --> <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm"> <div class="flex items-center justify-between mb-4"> <div> <h2 class="text-sm font-bold text-slate-900">აქტივობაში უწყვეტი ჩართულობის ხანგრძლივობა</h2> <p class="text-[11px] text-slate-500">წუთებში, სესიების ქრონოლოგიის მიხედვით</p> </div> <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">წუთები</span> </div> <div class="h-64"> <canvas id="durationChart"></canvas> </div> </div> <!-- Chart 2: Assistance Level Over Time --> <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm"> <div class="flex items-center justify-between mb-4"> <div> <h2 class="text-sm font-bold text-slate-900">დახმარების დონის დინამიკა (დამოუკიდებლობა)</h2> <p class="text-[11px] text-slate-500">სრული დახმარებიდან დამოუკიდებელ შესრულებამდე</p> </div> <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold">დინამიკა</span> </div> <div class="h-64"> <canvas id="assistanceChart"></canvas> </div> </div> </div> <!-- Charts Row 2: Sensory Systems Frequency & Reactions --> <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"> <!-- Chart 3: Sensory Systems Frequency --> <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm"> <div class="flex items-center justify-between mb-4"> <div> <h2 class="text-sm font-bold text-slate-900">სენსორული სისტემების გამოყენების სიხშირე</h2> <p class="text-[11px] text-slate-500">ინტერვენციების რაოდენობა სისტემების მიხედვით</p> </div> <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold">აქტივობები</span> </div> <div class="h-64"> <canvas id="systemsChart"></canvas> </div> </div> <!-- Breakdown Tables --> <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4"> <h2 class="text-sm font-bold text-slate-900">ხშირად გამოყენებული აქტივობები და რეაქციები</h2> <div class="space-y-3"> <h3 class="text-xs font-bold uppercase text-slate-400">აქტივობების ტოპ 5</h3> <div class="space-y-1.5"> {% for act, count in top_activities|slice:":5" %}
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 text-xs"> <span class="font-semibold text-slate-800">{{ act }}</span> <strong class="text-blue-600">{{ count }} სესია</strong> </div> {% empty %}
+                    <div class="text-xs text-slate-400">მონაცემები არ არის.</div> {% endfor %}
+                </div> </div> <div class="pt-2 space-y-3 border-t border-slate-100"> <h3 class="text-xs font-bold uppercase text-slate-400">დაკვირვებული რეაქციების სტატისტიკა</h3> <div class="flex flex-wrap gap-2"> {% for resp, count in top_responses %}
+                    <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-medium"> {{ resp }}: <strong class="text-slate-900">{{ count }}</strong> </span> {% empty %}
+                    <div class="text-xs text-slate-400">რეაქციები ჯერ არ ფიქსირდება.</div> {% endfor %}
+                </div> </div> </div> </div> </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script> const chartData = JSON.parse('{{ chart_data_json|escapejs }}');
+
+    // 1. Duration Line Chart
+    const ctxDuration = document.getElementById('durationChart');
+    if (ctxDuration && chartData.timeline_dates.length > 0) {
+        new Chart(ctxDuration, {
+            type: 'line',
+            data: {
+                labels: chartData.timeline_dates,
+                datasets: [{
+                    label: 'საშუალო ხანგრძლივობა (წუთი)',
+                    data: chartData.timeline_durations,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#2563eb'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'წუთი' }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Assistance Dynamics Line Chart
+    const ctxAssistance = document.getElementById('assistanceChart');
+    if (ctxAssistance && chartData.timeline_dates.length > 0) {
+        new Chart(ctxAssistance, {
+            type: 'line',
+            data: {
+                labels: chartData.timeline_dates,
+                datasets: [{
+                    label: 'დამოუკიდებლობის ინდექსი (1=სრული, 6=დამოუკიდებელი)',
+                    data: chartData.timeline_assist,
+                    borderColor: '#059669',
+                    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#059669'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 1,
+                        max: 6,
+                        ticks: {
+                            callback: function(value) {
+                                const map = {
+                                    1: 'სრული',
+                                    2: 'დიდი',
+                                    3: 'საშუალო',
+                                    4: 'მცირე',
+                                    5: 'სიტყვიერი',
+                                    6: 'დამოუკიდ.'
+                                };
+                                return map[value] || '';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 3. Sensory Systems Bar Chart
+    const ctxSystems = document.getElementById('systemsChart');
+    if (ctxSystems && chartData.system_labels.length > 0) {
+        new Chart(ctxSystems, {
+            type: 'bar',
+            data: {
+                labels: chartData.system_labels,
+                datasets: [{
+                    label: 'აქტივობების რაოდენობა',
+                    data: chartData.system_values,
+                    backgroundColor: [
+                        '#3b82f6', '#0d9488', '#8b5cf6', '#f59e0b',
+                        '#ec4899', '#06b6d4', '#10b981', '#6366f1', '#f97316'
+                    ],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

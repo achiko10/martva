@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}ახალი თვის ანგარიში — {{ beneficiary.full_name }} — OT Progress{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-6"> <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6"> <div class="flex items-center justify-between pb-4 border-b border-slate-100"> <div> <h1 class="text-xl font-black text-slate-900">თვის ანგარიშის ავტო-გენერირება</h1> <p class="text-xs text-slate-500 mt-0.5">ბენეფიციარი: <strong>{{ beneficiary.full_name }}</strong></p> </div> <a href="{% url 'beneficiary_detail' beneficiary.id %}?tab=reports" class="text-xs font-bold text-slate-400 hover:text-slate-600"> გაუქმება 
+            </a> </div> <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 text-xs text-blue-900 leading-relaxed"> <strong>როგორ მუშაობს ავტო-გენერატორი:</strong> სისტემა ამოიკითხავს არჩეულ თვეში ჩატარებული ყველა სესიის მონაცემებს (სენსორული ინტერვენციები, მიზნები, დახმარების დონე, დრო, რეაქციები) და დააგენერირებს სრულყოფილ 10-სექციიან პროფესიულ კლინიკურ მონახაზს. გენერირების შემდეგ თქვენ შეძლებთ ნებისმიერი წინადადების რედაქტირებას.
+        </div> <form method="post" class="space-y-4"> {% csrf_token %}
+
+            <div class="grid grid-cols-2 gap-4"> <div> <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">წელი</label> <select name="year" class="w-full p-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"> {% for y in years %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }} წელი</option> {% endfor %}
+                    </select> </div> <div> <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">თვე</label> <select name="month" class="w-full p-2.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"> {% for m_num, m_name in months %}
+                        <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ m_name }}</option> {% endfor %}
+                    </select> </div> </div> <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-100"> <a href="{% url 'beneficiary_detail' beneficiary.id %}?tab=reports"
+                   class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"> გაუქმება
+                </a> <button type="submit"
+                        class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition flex items-center"> ანგარიშის აწყობა და რედაქტორი
+                </button> </div> </form> </div>
+</div>
+{% endblock %}

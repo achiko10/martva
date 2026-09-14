@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report.period_display }} — თვის ანგარიში — OT Progress{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-3 space-y-4"> <!-- Top Action Bar --> <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm sticky top-16 z-20 backdrop-blur-md bg-white/95"> <div> <div class="flex items-center space-x-2"> <a href="{% url 'beneficiary_detail' report.beneficiary.id %}" class="text-xs font-bold text-slate-400 hover:text-slate-600"> ← {{ report.beneficiary.full_name }}
+                </a> <span class="text-slate-300">•</span> <span class="text-xs font-bold text-slate-700">{{ report.period_display }}</span> {% if report.is_finalized %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">დამტკიცებული</span> {% else %}
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">სამუშაო ვერსია</span> {% endif %}
+            </div> <div class="text-xs text-slate-500 mt-0.5"> სესიების რაოდენობა: <strong>{{ report.sessions_count }}</strong> (50 წთ)
+            </div> </div>         <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button type="submit" form="report-form" name="action" value="save"
+                    class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center">
+                შენახვა
+            </button>
+            <a href="{% url 'monthly_report_view' report.id %}" target="_blank"
+               class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                ნახვა / ბეჭდვა
+            </a>
+            <a href="{% url 'monthly_report_pdf' report.id %}" target="_blank"
+               class="px-3 py-2 bg-[#006a61] hover:bg-[#005049] text-white rounded-xl text-xs font-bold shadow-md shadow-[#006a61]/20 transition flex items-center">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                PDF ჩამოტვირთვა
+            </a>
+            <form method="post" class="inline" onsubmit="return confirm('გსურთ ანგარიშის ხელახლა აწყობა სესიების უახლესი მონაცემებიდან?')">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="regenerate">
+                <button type="submit" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition" title="სესიებიდან ხელახალი სინქრონიზაცია">
+                    განახლება
+                </button>
+            </form>
+        </div> </div> <!-- A4 Clean Document View --> <form method="post" id="report-form" class="space-y-4"> {% csrf_token %}
+
+        <div class="bg-white rounded-2xl p-6 sm:p-10 border border-slate-200 shadow-sm space-y-6 font-sans"> <!-- Document Header --> <div class="border-b border-slate-200 pb-5"> <input type="text" name="title" value="{{ report.title }}"
+                       class="w-full text-lg sm:text-xl font-black text-slate-900 border-0 border-b border-transparent hover:border-slate-200 focus:border-blue-500 focus:ring-0 p-1 rounded transition"
+                       title="სათაური"> <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 p-3.5 bg-slate-50 rounded-xl text-xs"> <div> <span class="text-slate-400 block text-[10px] uppercase font-bold">ბენეფიციარი</span> <strong class="text-slate-800 font-bold">{{ report.beneficiary.full_name }}</strong> </div> <div> <span class="text-slate-400 block text-[10px] uppercase font-bold">ასაკი</span> <span class="text-slate-800 font-semibold">{{ report.beneficiary.age_display }}</span> </div> <div> <span class="text-slate-400 block text-[10px] uppercase font-bold">საანგარიშო პერიოდი</span> <span class="text-slate-800 font-semibold">{{ report.period_display }}</span> </div> <div> <span class="text-slate-400 block text-[10px] uppercase font-bold">თერაპევტი</span> <span class="text-slate-800 font-semibold">{{ report.therapist|default:"—" }}</span> </div> </div> </div> <!-- SECTION 1: დასწრება და ზოგადი მიმოხილვა --> <div class="space-y-1.5"> <label class="block text-xs font-bold text-slate-900 uppercase tracking-wide"> 1. დასწრება და ზოგადი მიმოხილვა
+                </label> <textarea name="section_1_directions" rows="4"
+                          class="w-full p-3.5 rounded-xl border border-slate-200 text-sm text-slate-800 leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500">{{ report.section_1_directions }}</textarea> </div> <!-- SECTION 2: სენსორული სისტემები და რეაქციები --> <div class="space-y-1.5"> <label class="block text-xs font-bold text-slate-900 uppercase tracking-wide"> 2. სენსორული სისტემები და რეაქციები
+                </label> <textarea name="section_2_goals" rows="4"
+                          class="w-full p-3.5 rounded-xl border border-slate-200 text-sm text-slate-800 leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500">{{ report.section_2_goals }}</textarea> </div> <!-- SECTION 3: მიზნების დინამიკა (დამოუკიდებლობა) --> <div class="space-y-1.5"> <label class="block text-xs font-bold text-slate-900 uppercase tracking-wide"> 3. მიზნების დინამიკა და დამოუკიდებლობის ხარისხი
+                </label> <textarea name="section_3_work_performed" rows="4"
+                          class="w-full p-3.5 rounded-xl border border-slate-200 text-sm text-slate-800 leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500">{{ report.section_3_work_performed }}</textarea> </div> <!-- SECTION 4: გამოწვევები --> <div class="space-y-1.5"> <label class="block text-xs font-bold text-slate-900 uppercase tracking-wide"> 4. გამოწვევები და სირთულეები
+                </label> <textarea name="section_8_challenges" rows="3"
+                          class="w-full p-3.5 rounded-xl border border-slate-200 text-sm text-slate-800 leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          placeholder="თქვენი კომენტარი ან დაფიქსირებული გამოწვევები...">{{ report.section_8_challenges }}</textarea> </div> <!-- SECTION 5: რეკომენდაციები ოჯახს --> <div class="space-y-1.5"> <label class="block text-xs font-bold text-slate-900 uppercase tracking-wide"> 5. რეკომენდაციები ოჯახს
+                </label> <textarea name="section_9_recommendations" rows="3"
+                          class="w-full p-3.5 rounded-xl border border-slate-200 text-sm text-slate-800 leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          placeholder="თქვენი რეკომენდაციები მშობლისთვის...">{{ report.section_9_recommendations }}</textarea> </div> <!-- Bottom Confirmation & Save --> <div class="pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3"> <label class="flex items-center space-x-2 cursor-pointer"> <input type="checkbox" name="is_finalized" {% if report.is_finalized %}checked{% endif %}
+                           class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"> <span class="text-xs font-bold text-slate-700">დამტკიცებული ანგარიში</span> </label> <div class="flex items-center space-x-2"> <button type="submit" name="action" value="save"
+                            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 transition"> ცვლილებების შენახვა
+                    </button> <a href="{% url 'monthly_report_pdf' report.id %}" target="_blank"
+                       class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition"> ️ PDF
+                    </a> </div> </div> </div> </form> </div>
+{% endblock %}

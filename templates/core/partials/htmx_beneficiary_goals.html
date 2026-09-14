@@ -1,0 +1,35 @@
+{% if goals %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    {% for g in goals %}
+    <label class="cursor-pointer block">
+        <input type="checkbox" name="goals" value="{{ g.id }}" checked class="sr-only peer chip-checkbox">
+        <div class="p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 peer-checked:bg-blue-50/80 peer-checked:border-blue-500 peer-checked:text-blue-950 transition shadow-sm space-y-1">
+            <div class="flex items-center justify-between">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 peer-checked:bg-blue-200/80 peer-checked:text-blue-900">
+                    {{ g.get_domain_display }}
+                </span>
+                <span class="text-[11px] text-slate-400 font-semibold peer-checked:text-blue-600">✓ არჩეული</span>
+            </div>
+            <div class="text-xs font-bold text-slate-800 leading-snug peer-checked:text-blue-950">
+                {{ g.description }}
+            </div>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div class="text-[10px] text-slate-500">
+                    სამიზნე: <strong class="text-emerald-700">{{ g.target_numeric|floatformat:0 }}{{ g.unit_label }}</strong>
+                    (დღეს: {{ g.current_numeric|floatformat:0 }}{{ g.unit_label }})
+                </div>
+                <div class="flex items-center space-x-1">
+                    <span class="text-[10px] font-bold text-slate-400">შედეგი:</span>
+                    <input type="number" step="any" name="goal_value_{{ g.id }}" value="{{ g.current_numeric|floatformat:0 }}"
+                           class="w-16 p-1 rounded-lg border border-slate-200 text-xs font-bold text-center bg-white"
+                           onclick="event.stopPropagation()">
+                    <span class="text-[10px] font-bold text-slate-500">{{ g.unit_label }}</span>
+                </div>
+            </div>
+        </div>
+    </label>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-xs text-slate-400 py-2">ამ ბენეფიციარს აქტიური მიზნები არ აქვს დამატებული.</div>
+{% endif %}
