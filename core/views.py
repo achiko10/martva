@@ -21,26 +21,26 @@ from .pdf import generate_report_pdf
 
 def get_user_beneficiaries(user):
     """Filter beneficiaries based on user role"""
-    if user.is_superuser:
-        return Beneficiary.objects.all()
-    try:
-        profile = user.therapist_profile
-        if profile.is_admin_role:
-            return Beneficiary.objects.all()
-        return Beneficiary.objects.filter(therapist=profile)
-    except TherapistProfile.DoesNotExist:
+    if not user.is_authenticated:
         return Beneficiary.objects.none()
+    if user.is_superuser or user.is_staff:
+        return Beneficiary.objects.all()
+    profile, _ = TherapistProfile.objects.get_or_create(user=user)
+    if profile.is_admin_role:
+        return Beneficiary.objects.all()
+    return Beneficiary.objects.filter(Q(therapist=profile) | Q(therapist__isnull=True))
 
 
 def can_access_beneficiary(user, beneficiary):
-    if user.is_superuser:
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
         return True
-    try:
-        profile = user.therapist_profile
-        if profile.is_admin_role or beneficiary.therapist == profile:
-            return True
-    except TherapistProfile.DoesNotExist:
-        pass
+    if beneficiary.therapist is None:
+        return True
+    profile, _ = TherapistProfile.objects.get_or_create(user=user)
+    if profile.is_admin_role or beneficiary.therapist == profile:
+        return True
     return False
 
 
@@ -168,13 +168,10 @@ def beneficiary_create_view(request):
         # Assigned therapist
         therapist_id = request.POST.get("therapist")
         assigned_therapist = None
-        if therapist_id and (request.user.is_superuser or request.user.therapist_profile.is_admin_role):
+        if therapist_id:
             assigned_therapist = TherapistProfile.objects.filter(id=therapist_id).first()
-        else:
-            try:
-                assigned_therapist = request.user.therapist_profile
-            except TherapistProfile.DoesNotExist:
-                pass
+        if not assigned_therapist:
+            assigned_therapist, _ = TherapistProfile.objects.get_or_create(user=request.user)
 
         if not first_name or not last_name or not dob_str:
             messages.error(request, "გთხოვთ შეავსოთ სავალდებულო ველები (სახელი, გვარი, დაბადების თარიღი).")
