@@ -807,12 +807,22 @@ def monthly_report_pdf_view(request, report_id):
     if not can_access_beneficiary(request.user, report.beneficiary):
         return HttpResponseForbidden()
 
-    pdf_data = generate_report_pdf(report)
-    response = HttpResponse(pdf_data, content_type="application/pdf")
-    filename = f"OT_Report_{report.beneficiary.last_name}_{report.year}_{report.month}.pdf"
-    disposition = "attachment" if request.GET.get("download") else "inline"
-    response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
-    return response
+    from .pdf import _get_browser_path, generate_report_pdf
+    if _get_browser_path():
+        try:
+            pdf_data = generate_report_pdf(report)
+            response = HttpResponse(pdf_data, content_type="application/pdf")
+            filename = f"OT_Report_{report.beneficiary.last_name}_{report.year}_{report.month}.pdf"
+            disposition = "attachment" if request.GET.get("download") else "inline"
+            response["Content-Disposition"] = f'{disposition}; filename="{filename}"'
+            return response
+        except Exception:
+            pass
+
+    # On cloud environments without headless Chrome (e.g. PythonAnywhere free tier),
+    # redirect to the pixel-perfect HTML print layout with automated browser print
+    from django.urls import reverse
+    return redirect(reverse("monthly_report_view", args=[report.id]) + "?autoprint=1")
 
 
 @login_required
