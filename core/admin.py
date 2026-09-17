@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import (
     TherapistProfile, Beneficiary, OccupationalProfile, SensoryProfile,
     Goal, SensorySystem, SensoryActivity, SensoryResponse, FunctionalOutcome,
-    Session, SessionGoal, SessionSensoryActivity, MonthlyReport, ReportRevision
+    Session, SessionGoal, SessionSensoryActivity, MonthlyReport, ReportRevision,
+    ScheduleSlot
 )
 
 
@@ -127,4 +128,12 @@ class MonthlyReportAdmin(admin.ModelAdmin):
     list_filter = ["year", "month", "is_finalized", "therapist"]
     search_fields = ["beneficiary__first_name", "beneficiary__last_name", "section_1_directions"]
     inlines = [ReportRevisionInline]
+
+
+@admin.register(ScheduleSlot)
+class ScheduleSlotAdmin(admin.ModelAdmin):
+    list_display = ["date", "start_time", "end_time", "beneficiary", "therapist", "therapy_type", "status"]
+    list_filter = ["date", "status", "therapy_type", "therapist"]
+    search_fields = ["beneficiary__first_name", "beneficiary__last_name", "notes"]
+
 

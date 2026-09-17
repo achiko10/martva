@@ -10,7 +10,43 @@
                class="inline-flex items-center px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/25 transition transform active:scale-95"> <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path> </svg> + ახალი სესია
             </a> <a href="{% url 'beneficiary_create' %}"
                class="inline-flex items-center px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition"> + ბავშვის დამატება
-            </a> </div> </div> <!-- Minimal Stats Cards --> <div class="grid grid-cols-3 gap-2 sm:gap-4"> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">აქტიური ბავშვები</div> <div class="text-xl sm:text-3xl font-black text-slate-900 mt-1">{{ beneficiaries_total }}</div> </div> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">დღევანდელი სესიები</div> <div class="text-xl sm:text-3xl font-black text-blue-600 mt-1">{{ today_sessions_count }}</div> </div> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">სესიები ამ თვეში</div> <div class="text-xl sm:text-3xl font-black text-indigo-600 mt-1">{{ month_sessions_count }}</div> </div> </div> <!-- Children Cards Grid --> <div class="space-y-3"> <div class="flex items-center justify-between"> <h2 class="text-base font-bold text-slate-900 flex items-center"> <span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-2"></span> ბავშვების სია (სწრაფი ქმედებები)
+            </a> </div> </div> <!-- Minimal Stats Cards --> <div class="grid grid-cols-3 gap-2 sm:gap-4"> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">აქტიური ბავშვები</div> <div class="text-xl sm:text-3xl font-black text-slate-900 mt-1">{{ beneficiaries_total }}</div> </div> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">დღევანდელი სესიები</div> <div class="text-xl sm:text-3xl font-black text-blue-600 mt-1">{{ today_sessions_count }}</div> </div> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">სესიები ამ თვეში</div> <div class="text-xl sm:text-3xl font-black text-indigo-600 mt-1">{{ month_sessions_count }}</div> </div> </div>     {% if today_slots %}
+    <!-- Today's Schedule -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-slate-900 flex items-center">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-2"></span> დღევანდელი განრიგი ({{ today_slots|length }})
+            </h2>
+            <a href="{% url 'schedule' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800">
+                სრული კალენდარი →
+            </a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+            {% for slot in today_slots %}
+            <div class="p-3 rounded-xl border {% if slot.status == 'completed' %}border-emerald-200 bg-emerald-50/40{% elif slot.status == 'missed' %}border-rose-200 bg-rose-50/40{% else %}border-blue-200 bg-blue-50/30{% endif %} flex items-center justify-between">
+                <div>
+                    <div class="text-[11px] font-bold text-slate-500">{{ slot.time_range_display }}</div>
+                    <div class="text-xs font-bold text-slate-900 mt-0.5">{{ slot.beneficiary.full_name }}</div>
+                    <div class="text-[10px] text-slate-400">{{ slot.therapy_type }}</div>
+                </div>
+                <div>
+                    {% if slot.status == 'completed' %}
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">ჩატარდა</span>
+                    {% elif slot.status == 'missed' %}
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800">გაცდენა</span>
+                    {% else %}
+                        <a href="{% url 'session_create' %}?beneficiary_id={{ slot.beneficiary.id }}&slot_id={{ slot.id }}" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow-xs">
+                            + სესია
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Children Cards Grid --> <div class="space-y-3"> <div class="flex items-center justify-between"> <h2 class="text-base font-bold text-slate-900 flex items-center"> <span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-2"></span> ბავშვების სია (სწრაფი ქმედებები)
             </h2> <a href="{% url 'beneficiary_list' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800"> სრული სია →
             </a> </div> <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> {% for item in beneficiary_cards %}
             <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:border-blue-200 hover:shadow-md transition flex flex-col justify-between"> <div> <!-- Child Info Header --> <div class="flex items-start justify-between"> <div> <a href="{% url 'beneficiary_detail' item.beneficiary.id %}" class="text-base font-bold text-slate-900 hover:text-blue-600 transition block"> {{ item.beneficiary.full_name }}

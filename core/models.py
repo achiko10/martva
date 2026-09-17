@@ -630,3 +630,70 @@ class ReportRevision(models.Model):
     def __str__(self):
         return f"{self.report} - რევიზია {self.created_at.strftime('%Y-%m-%d %H:%M')}"
 
+
+class ScheduleSlot(models.Model):
+    STATUS_CHOICES = [
+        ("scheduled", "დაგეგმილი"),
+        ("completed", "ჩატარდა"),
+        ("missed", "გაცდენა"),
+    ]
+
+    THERAPY_TYPES = [
+        ("ოკუპაციური თერაპია", "ოკუპაციური თერაპია"),
+        ("სენსორული ინტეგრაცია", "სენსორული ინტეგრაცია"),
+        ("კვების თერაპია", "კვების თერაპია"),
+        ("მოტორული უნარები", "მოტორული უნარები"),
+        ("პირველადი შეფასება", "პირველადი შეფასება"),
+    ]
+
+    therapist = models.ForeignKey(
+        TherapistProfile,
+        on_delete=models.CASCADE,
+        related_name="schedule_slots",
+        verbose_name="თერაპევტი"
+    )
+    beneficiary = models.ForeignKey(
+        Beneficiary,
+        on_delete=models.CASCADE,
+        related_name="schedule_slots",
+        verbose_name="ბენეფიციარი"
+    )
+    date = models.DateField(default=timezone.now, verbose_name="თარიღი")
+    start_time = models.TimeField(verbose_name="დაწყების დრო")
+    duration_minutes = models.PositiveIntegerField(default=50, verbose_name="ხანგრძლივობა (წთ)")
+    end_time = models.TimeField(null=True, blank=True, verbose_name="დასრულების დრო")
+    therapy_type = models.CharField(max_length=100, default="ოკუპაციური თერაპია", verbose_name="თერაპია")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="scheduled", verbose_name="სტატუსი")
+    notes = models.CharField(max_length=255, blank=True, verbose_name="შენიშვნა")
+    session = models.ForeignKey(
+        "Session",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="schedule_slots",
+        verbose_name="მიბმული სესია"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="შექმნის დრო")
+
+    class Meta:
+        verbose_name = "განრიგის ვიზიტი"
+        verbose_name_plural = "განრიგის ვიზიტები"
+        ordering = ["date", "start_time"]
+
+    def save(self, *args, **kwargs):
+        if not self.end_time and self.start_time:
+            from datetime import datetime, timedelta
+            dummy_dt = datetime.combine(datetime.today(), self.start_time) + timedelta(minutes=self.duration_minutes)
+            self.end_time = dummy_dt.time()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.date} {self.start_time.strftime('%H:%M')} - {self.beneficiary.full_name}"
+
+    @property
+    def time_range_display(self):
+        s = self.start_time.strftime("%H:%M")
+        e = self.end_time.strftime("%H:%M") if self.end_time else ""
+        return f"{s} - {e}" if e else s
+
+

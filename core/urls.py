@@ -33,4 +33,10 @@ urlpatterns = [
     path("reports/<int:report_id>/edit/", views.monthly_report_edit_view, name="monthly_report_edit"),
     path("reports/<int:report_id>/view/", views.monthly_report_view, name="monthly_report_view"),
     path("reports/<int:report_id>/pdf/", views.monthly_report_pdf_view, name="monthly_report_pdf"),
+
+    # Schedule & Timetable
+    path("schedule/", views.schedule_view, name="schedule"),
+    path("schedule/add/", views.schedule_add_view, name="schedule_add"),
+    path("schedule/<int:slot_id>/status/", views.schedule_status_view, name="schedule_status"),
+    path("schedule/<int:slot_id>/delete/", views.schedule_delete_view, name="schedule_delete"),
 ]

@@ -1,0 +1,295 @@
+﻿{% extends "base.html" %}
+
+{% block title %}პირადი განრიგი და აღრიცხვა — OT Progress{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+
+    <!-- Top Action & Navigation Bar -->
+    <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3 flex-wrap gap-2">
+            <h1 class="text-xl font-black text-slate-900">პირადი განრიგი</h1>
+            
+            <!-- Week Switcher -->
+            <div class="flex items-center space-x-1 border border-slate-200 rounded-xl p-1 bg-slate-50 text-xs font-bold">
+                <a href="?week_offset={{ prev_offset }}" class="px-2.5 py-1 hover:bg-white rounded-lg transition text-slate-600 hover:text-slate-900" title="წინა კვირა">◀</a>
+                <a href="?week_offset=0" class="px-3 py-1 {% if week_offset == 0 %}bg-white text-blue-700 shadow-sm{% else %}text-slate-600 hover:bg-white{% endif %} rounded-lg transition">დღეს</a>
+                <a href="?week_offset={{ next_offset }}" class="px-2.5 py-1 hover:bg-white rounded-lg transition text-slate-600 hover:text-slate-900" title="შემდეგი კვირა">▶</a>
+            </div>
+
+            <span class="text-xs sm:text-sm font-bold text-slate-700 ml-1">
+                {{ period_label }}
+            </span>
+        </div>
+
+        <div class="flex items-center space-x-3 self-end sm:self-auto">
+            <!-- Status Legend -->
+            <div class="hidden md:flex items-center space-x-3 text-xs font-semibold text-slate-500 mr-2">
+                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 mr-1.5"></span>დაგეგმილი</span>
+                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>ჩატარდა</span>
+                <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-1.5"></span>გაცდენა</span>
+            </div>
+
+            <button onclick="openAddModal('{{ today_str }}', '10:00')" type="button" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-600/30 transition transform active:scale-95">
+                <span class="mr-1 text-sm font-bold">+</span> ვიზიტის ჩანიშვნა
+            </button>
+        </div>
+    </div>
+
+    <!-- Calendar Timetable Grid -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <div class="min-w-[850px]">
+                
+                <!-- Days Header -->
+                <div class="grid grid-cols-[80px_repeat(6,1fr)] border-b border-slate-200 bg-slate-50/80 text-xs font-bold text-slate-700 sticky top-0 z-10">
+                    <div class="p-3 text-center text-slate-400 border-r border-slate-200">დრო</div>
+                    {% for day in week_days %}
+                    <div class="p-3 text-center border-r border-slate-200 last:border-r-0 {% if day.is_today %}bg-blue-50/80 text-blue-700 font-black{% endif %}">
+                        <div>{{ day.day_name }}</div>
+                        <div class="text-[11px] {% if day.is_today %}text-blue-600 font-bold{% else %}text-slate-400 font-semibold{% endif %}">
+                            {{ day.day_num }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Timetable Rows -->
+                <div class="divide-y divide-slate-100">
+                    {% for row in timetable_rows %}
+                    <div class="grid grid-cols-[80px_repeat(6,1fr)] min-h-[72px]">
+                        <!-- Hour Label -->
+                        <div class="p-2 text-xs font-bold text-slate-400 text-center border-r border-slate-200 bg-slate-50/30 flex items-center justify-center select-none">
+                            {{ row.hour }}
+                        </div>
+
+                        <!-- 6 Day Columns -->
+                        {% for day_col in row.row_days %}
+                        <div class="p-1 border-r border-slate-100 last:border-r-0 {% if day_col.day.is_today %}bg-blue-50/10{% endif %} hover:bg-slate-50/70 transition relative group">
+                            
+                            <!-- Slots in this Hour/Day -->
+                            {% if day_col.slots %}
+                                <div class="space-y-1 h-full">
+                                    {% for slot in day_col.slots %}
+                                    <div onclick="openEventDetails('{{ slot.id }}', '{{ slot.beneficiary.full_name|escapejs }}', '{{ slot.time_range_display }}', '{{ slot.therapy_type|escapejs }}', '{{ slot.status }}', '{% if slot.session %}{% url 'session_detail' slot.session.id %}{% else %}{% url 'session_create' %}?beneficiary_id={{ slot.beneficiary.id }}&slot_id={{ slot.id }}{% endif %}', '{{ slot.notes|default:''|escapejs }}')" 
+                                         class="cursor-pointer rounded-lg p-1.5 text-xs transition shadow-xs hover:shadow-md 
+                                                {% if slot.status == 'completed' %}bg-emerald-50 border-l-4 border-emerald-500 text-emerald-900
+                                                {% elif slot.status == 'missed' %}bg-rose-50 border-l-4 border-rose-500 text-rose-900
+                                                {% else %}bg-blue-50 border-l-4 border-blue-500 text-blue-900{% endif %}">
+                                        
+                                        <div class="flex items-center justify-between text-[10px] font-bold opacity-80">
+                                            <span>{{ slot.time_range_display }}</span>
+                                            {% if slot.status == 'completed' %}
+                                                <span class="text-emerald-700">✓</span>
+                                            {% elif slot.status == 'missed' %}
+                                                <span class="text-rose-700">✕</span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="font-bold truncate mt-0.5">
+                                            {{ slot.beneficiary.full_name }}
+                                        </div>
+
+                                        <div class="text-[10px] opacity-75 truncate">
+                                            {{ slot.therapy_type }}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <!-- Empty clickable area to add appointment -->
+                                <button onclick="openAddModal('{{ day_col.day.date_str }}', '{{ row.hour }}')" 
+                                        type="button" 
+                                        class="w-full h-full opacity-0 group-hover:opacity-100 flex items-center justify-center text-blue-600 font-bold text-xs transition rounded hover:bg-blue-50/50">
+                                    + ჩანიშვნა
+                                </button>
+                            {% endif %}
+
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ==================== POPUP: EVENT DETAILS & QUICK ACTIONS ==================== -->
+<div id="popover-event" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-start justify-between">
+            <div>
+                <h3 id="pop-name" class="text-base font-black text-slate-900"></h3>
+                <div id="pop-time" class="text-xs font-bold text-slate-500 mt-0.5"></div>
+                <div id="pop-type" class="text-xs font-semibold text-blue-600 mt-0.5"></div>
+                <div id="pop-notes" class="text-xs text-slate-500 italic mt-1 hidden"></div>
+            </div>
+            <button onclick="closeEventDetails()" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold p-1">✕</button>
+        </div>
+
+        <!-- Quick Status Buttons -->
+        <div class="pt-3 border-t border-slate-100 space-y-2">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">სტატუსის შეცვლა:</div>
+            
+            <form id="status-form" method="POST" action="" class="grid grid-cols-3 gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="status" id="status-input" value="">
+                
+                <button onclick="submitStatus('completed')" type="button" class="py-2 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center">
+                    ✓ მოვიდა
+                </button>
+                <button onclick="submitStatus('missed')" type="button" class="py-2 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center">
+                    ✕ გააცდინა
+                </button>
+                <button onclick="submitStatus('scheduled')" type="button" class="py-2 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-center">
+                    ელოდება
+                </button>
+            </form>
+        </div>
+
+        <!-- Session & Delete Actions -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <form id="delete-form" method="POST" action="" onsubmit="return confirm('წაიშალოს ეს ჩანაწერი განრიგიდან?');">
+                {% csrf_token %}
+                <button type="submit" class="text-xs text-rose-500 hover:text-rose-700 font-bold p-1 hover:underline">
+                    წაშლა
+                </button>
+            </form>
+
+            <a id="pop-session-link" href="#" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-blue-600/30 flex items-center">
+                სესიის ჩაწერა →
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL: ADD APPOINTMENT ==================== -->
+<div id="modal-add" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="text-base font-black text-slate-900">
+                + ვიზიტის ჩანიშვნა განრიგში
+            </h3>
+            <button onclick="closeAddModal()" type="button" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+        </div>
+
+        <form method="POST" action="{% url 'schedule_add' %}" class="space-y-3.5 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+            <!-- 1. Beneficiary Select -->
+            <div>
+                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">ბავშვი *</label>
+                <select name="beneficiary" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">აირჩიეთ ბავშვი...</option>
+                    {% for b in beneficiaries %}
+                    <option value="{{ b.id }}">{{ b.full_name }} ({{ b.age_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 2. Date & Time -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">თარიღი *</label>
+                    <input type="date" name="date" id="add-date" value="{{ today_str }}" required class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">დაწყების დრო *</label>
+                    <input type="time" name="start_time" id="add-time" value="10:00" required class="w-full p-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- 3. Duration & Therapy Type -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">ხანგრძლივობა</label>
+                    <select name="duration_minutes" class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="50" selected>50 წუთი</option>
+                        <option value="45">45 წუთი</option>
+                        <option value="40">40 წუთი</option>
+                        <option value="60">60 წუთი</option>
+                        <option value="30">30 წუთი</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">თერაპია</label>
+                    <select name="therapy_type" class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        {% for t in therapy_types %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 4. Recurring Checkbox -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center space-x-2">
+                <input type="checkbox" name="is_recurring" id="is_recurring" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+                <label for="is_recurring" class="text-xs text-slate-700 font-semibold cursor-pointer select-none">
+                    განმეორდეს ყოველკვირეულად (მომდევნო 1 თვე)
+                </label>
+            </div>
+
+            <!-- 5. Notes -->
+            <div>
+                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">შენიშვნა (არასავალდებულო)</label>
+                <input type="text" name="notes" placeholder="მაგ. მშობელთან გასაუბრება ბოლოს" class="w-full p-2.5 rounded-xl border border-slate-200 font-normal text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-3 flex items-center justify-end space-x-2 border-t border-slate-100">
+                <button type="button" onclick="closeAddModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">
+                    გაუქმება
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shadow-sm shadow-blue-600/30">
+                    განრიგში დამატება
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAddModal(dateStr, timeStr) {
+        if (dateStr) document.getElementById('add-date').value = dateStr;
+        if (timeStr) document.getElementById('add-time').value = timeStr;
+        document.getElementById('modal-add').classList.remove('hidden');
+    }
+
+    function closeAddModal() {
+        document.getElementById('modal-add').classList.add('hidden');
+    }
+
+    function openEventDetails(slotId, name, time, type, status, sessionUrl, notes) {
+        document.getElementById('pop-name').innerText = name;
+        document.getElementById('pop-time').innerText = time;
+        document.getElementById('pop-type').innerText = type;
+
+        const notesEl = document.getElementById('pop-notes');
+        if (notes && notes.trim() !== "") {
+            notesEl.innerText = notes;
+            notesEl.classList.remove('hidden');
+        } else {
+            notesEl.classList.add('hidden');
+        }
+
+        document.getElementById('status-form').action = "/schedule/" + slotId + "/status/";
+        document.getElementById('delete-form').action = "/schedule/" + slotId + "/delete/";
+        document.getElementById('pop-session-link').href = sessionUrl;
+
+        document.getElementById('popover-event').classList.remove('hidden');
+    }
+
+    function closeEventDetails() {
+        document.getElementById('popover-event').classList.add('hidden');
+    }
+
+    function submitStatus(status) {
+        document.getElementById('status-input').value = status;
+        document.getElementById('status-form').submit();
+    }
+</script>
+{% endblock %}

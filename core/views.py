@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, time
 from collections import Counter
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import login, logout, authenticate
@@ -13,7 +13,8 @@ from django.db.models import Count, Q
 from .models import (
     TherapistProfile, Beneficiary, OccupationalProfile, SensoryProfile,
     Goal, SensorySystem, SensoryActivity, SensoryResponse, FunctionalOutcome,
-    Session, SessionGoal, SessionSensoryActivity, MonthlyReport, ReportRevision
+    Session, SessionGoal, SessionSensoryActivity, MonthlyReport, ReportRevision,
+    ScheduleSlot
 )
 from .reports import generate_monthly_report_content
 from .pdf import generate_report_pdf
@@ -108,11 +109,21 @@ def dashboard_view(request):
 
     recent_sessions = sessions_qs.order_by("-date", "-created_at")[:6]
 
+    profile, _ = TherapistProfile.objects.get_or_create(user=user)
+    if user.is_superuser or user.is_staff or profile.is_admin_role:
+        today_slots = ScheduleSlot.objects.filter(date=today).select_related("beneficiary").order_by("start_time")
+    else:
+        today_slots = ScheduleSlot.objects.filter(
+            Q(therapist=profile) | Q(therapist__isnull=True),
+            date=today
+        ).select_related("beneficiary").order_by("start_time")
+
     context = {
         "beneficiary_cards": beneficiary_cards,
         "beneficiaries_total": beneficiaries.count(),
         "today_sessions_count": today_sessions.count(),
         "today_sessions": today_sessions,
+        "today_slots": today_slots,
         "month_sessions_count": month_sessions_count,
         "recent_sessions": recent_sessions,
         "current_month_name": MonthlyReport.MONTH_NAMES.get(current_month, str(current_month)),
@@ -366,9 +377,14 @@ def beneficiary_edit_view(request, beneficiary_id):
 @login_required
 def session_create_view(request, beneficiary_id=None):
     beneficiaries = get_user_beneficiaries(request.user).filter(is_active=True)
+    slot_id = request.GET.get("slot_id") or request.POST.get("slot_id")
+    slot_obj = ScheduleSlot.objects.filter(id=slot_id).first() if slot_id else None
+
     selected_beneficiary = None
     if beneficiary_id:
         selected_beneficiary = get_object_or_404(beneficiaries, id=beneficiary_id)
+    elif slot_obj and slot_obj.beneficiary:
+        selected_beneficiary = slot_obj.beneficiary
     elif beneficiaries.exists():
         selected_beneficiary = beneficiaries.first()
 
@@ -397,6 +413,11 @@ def session_create_view(request, beneficiary_id=None):
             challenges=challenges,
             notes=notes
         )
+
+        if slot_obj:
+            slot_obj.session = session
+            slot_obj.status = "completed"
+            slot_obj.save()
 
         # 2. Add Goals Worked On & Update Progress
         goal_ids = request.POST.getlist("goals")
@@ -457,7 +478,8 @@ def session_create_view(request, beneficiary_id=None):
         "environment_systems": environment_systems,
         "initial_state_choices": Session.INITIAL_STATE_CHOICES,
         "final_state_choices": Session.FINAL_STATE_CHOICES,
-        "today_date": date.today().isoformat(),
+        "today_date": slot_obj.date.isoformat() if slot_obj else date.today().isoformat(),
+        "slot_id": slot_id,
     }
     return render(request, "core/session_form.html", context)
 
@@ -883,5 +905,170 @@ def goal_detail_view(request, goal_id):
         "status_choices": Goal.STATUS_CHOICES,
     }
     return render(request, "core/goal_detail.html", context)
+
+
+# ==================== SCHEDULE & TIMETABLE ====================
+
+@login_required
+def schedule_view(request):
+    user = request.user
+    profile, _ = TherapistProfile.objects.get_or_create(user=user)
+    
+    try:
+        week_offset = int(request.GET.get("week_offset", 0))
+    except ValueError:
+        week_offset = 0
+
+    today = date.today()
+    base_date = today + timedelta(weeks=week_offset)
+    start_of_week = base_date - timedelta(days=base_date.weekday())
+    
+    DAYS_GEORGIAN = ["ორშაბათი", "სამშაბათი", "ოთხშაბათი", "ხუთშაბათი", "პარასკევი", "შაბათი"]
+    MONTH_NAMES = {
+        1: "იანვარი", 2: "თებერვალი", 3: "მარტი", 4: "აპრილი",
+        5: "მაისი", 6: "ივნისი", 7: "ივლისი", 8: "აგვისტო",
+        9: "სექტემბერი", 10: "ოქტომბერი", 11: "ნოემბერი", 12: "დეკემბერი"
+    }
+
+    week_days = []
+    for i in range(6):
+        d = start_of_week + timedelta(days=i)
+        week_days.append({
+            "date": d,
+            "day_name": DAYS_GEORGIAN[i],
+            "day_num": d.day,
+            "is_today": (d == today),
+            "date_str": d.strftime("%Y-%m-%d"),
+        })
+    end_of_week = start_of_week + timedelta(days=5)
+
+    if user.is_superuser or user.is_staff or profile.is_admin_role:
+        slots = ScheduleSlot.objects.filter(date__range=[start_of_week, end_of_week]).select_related("beneficiary", "therapist")
+    else:
+        slots = ScheduleSlot.objects.filter(
+            Q(therapist=profile) | Q(therapist__isnull=True),
+            date__range=[start_of_week, end_of_week]
+        ).select_related("beneficiary", "therapist")
+
+    hours_list = [f"{h:02d}:00" for h in range(9, 19)]
+
+    timetable_rows = []
+    for hour_str in hours_list:
+        hour_int = int(hour_str.split(":")[0])
+        row_days = []
+        for day in week_days:
+            day_hour_slots = [
+                s for s in slots 
+                if s.date == day["date"] and s.start_time.hour == hour_int
+            ]
+            row_days.append({
+                "day": day,
+                "slots": day_hour_slots,
+            })
+        timetable_rows.append({
+            "hour": hour_str,
+            "row_days": row_days,
+        })
+
+    period_label = f"{start_of_week.day} — {end_of_week.day} {MONTH_NAMES.get(end_of_week.month, '')}, {end_of_week.year}"
+    beneficiaries = get_user_beneficiaries(user).filter(is_active=True)
+
+    context = {
+        "week_days": week_days,
+        "timetable_rows": timetable_rows,
+        "period_label": period_label,
+        "week_offset": week_offset,
+        "prev_offset": week_offset - 1,
+        "next_offset": week_offset + 1,
+        "beneficiaries": beneficiaries,
+        "today_str": today.strftime("%Y-%m-%d"),
+        "therapy_types": [t[0] for t in ScheduleSlot.THERAPY_TYPES],
+    }
+    return render(request, "core/schedule.html", context)
+
+
+@login_required
+def schedule_add_view(request):
+    if request.method == "POST":
+        beneficiary_id = request.POST.get("beneficiary")
+        beneficiary = get_object_or_404(Beneficiary, id=beneficiary_id)
+        if not can_access_beneficiary(request.user, beneficiary):
+            return HttpResponseForbidden()
+
+        profile, _ = TherapistProfile.objects.get_or_create(user=request.user)
+        date_str = request.POST.get("date", date.today().isoformat())
+        slot_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        time_str = request.POST.get("start_time", "10:00")
+        try:
+            start_time = datetime.strptime(time_str, "%H:%M").time()
+        except ValueError:
+            start_time = time(10, 0)
+
+        duration = int(request.POST.get("duration_minutes", 50) or 50)
+        therapy_type = request.POST.get("therapy_type", "ოკუპაციური თერაპია")
+        notes = request.POST.get("notes", "").strip()
+        is_recurring = request.POST.get("is_recurring") == "on"
+
+        ScheduleSlot.objects.create(
+            therapist=profile,
+            beneficiary=beneficiary,
+            date=slot_date,
+            start_time=start_time,
+            duration_minutes=duration,
+            therapy_type=therapy_type,
+            notes=notes,
+            status="scheduled",
+        )
+
+        if is_recurring:
+            for w in range(1, 4):
+                next_date = slot_date + timedelta(weeks=w)
+                ScheduleSlot.objects.create(
+                    therapist=profile,
+                    beneficiary=beneficiary,
+                    date=next_date,
+                    start_time=start_time,
+                    duration_minutes=duration,
+                    therapy_type=therapy_type,
+                    notes=notes,
+                    status="scheduled",
+                )
+
+        messages.success(request, f"ვიზიტი დროს {start_time.strftime('%H:%M')} წარმატებით ჩაინიშნა.")
+
+    next_url = request.POST.get("next") or "schedule"
+    return redirect(next_url)
+
+
+@login_required
+def schedule_status_view(request, slot_id):
+    slot = get_object_or_404(ScheduleSlot, id=slot_id)
+    if not can_access_beneficiary(request.user, slot.beneficiary):
+        return HttpResponseForbidden()
+
+    if request.method == "POST":
+        new_status = request.POST.get("status")
+        if new_status in ["scheduled", "completed", "missed"]:
+            slot.status = new_status
+            slot.save()
+            messages.success(request, "სტატუსი განახლდა.")
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "schedule"
+    return redirect(next_url)
+
+
+@login_required
+def schedule_delete_view(request, slot_id):
+    slot = get_object_or_404(ScheduleSlot, id=slot_id)
+    if not can_access_beneficiary(request.user, slot.beneficiary):
+        return HttpResponseForbidden()
+
+    if request.method == "POST":
+        slot.delete()
+        messages.success(request, "ვიზიტი წაიშალა განრიგიდან.")
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "schedule"
+    return redirect(next_url)
+
 
 
