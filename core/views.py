@@ -924,6 +924,7 @@ def schedule_view(request):
     start_of_week = base_date - timedelta(days=base_date.weekday())
     
     DAYS_GEORGIAN = ["ორშაბათი", "სამშაბათი", "ოთხშაბათი", "ხუთშაბათი", "პარასკევი", "შაბათი"]
+    DAYS_SHORT = ["ორშ", "სამ", "ოთხ", "ხუთ", "პარ", "შაბ"]
     MONTH_NAMES = {
         1: "იანვარი", 2: "თებერვალი", 3: "მარტი", 4: "აპრილი",
         5: "მაისი", 6: "ივნისი", 7: "ივლისი", 8: "აგვისტო",
@@ -936,6 +937,7 @@ def schedule_view(request):
         week_days.append({
             "date": d,
             "day_name": DAYS_GEORGIAN[i],
+            "day_short": DAYS_SHORT[i],
             "day_num": d.day,
             "is_today": (d == today),
             "date_str": d.strftime("%Y-%m-%d"),
