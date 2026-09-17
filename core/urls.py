@@ -37,6 +37,7 @@ urlpatterns = [
     # Schedule & Timetable
     path("schedule/", views.schedule_view, name="schedule"),
     path("schedule/add/", views.schedule_add_view, name="schedule_add"),
+    path("schedule/<int:slot_id>/edit/", views.schedule_edit_view, name="schedule_edit"),
     path("schedule/<int:slot_id>/status/", views.schedule_status_view, name="schedule_status"),
     path("schedule/<int:slot_id>/delete/", views.schedule_delete_view, name="schedule_delete"),
 ]

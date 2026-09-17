@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import date, datetime, timedelta, time
 from collections import Counter
 from django.shortcuts import render, get_object_or_404, redirect
@@ -1010,6 +1011,7 @@ def schedule_add_view(request):
         therapy_type = request.POST.get("therapy_type", "ოკუპაციური თერაპია")
         notes = request.POST.get("notes", "").strip()
         is_recurring = request.POST.get("is_recurring") == "on"
+        series_id = uuid.uuid4() if is_recurring else None
 
         ScheduleSlot.objects.create(
             therapist=profile,
@@ -1020,9 +1022,11 @@ def schedule_add_view(request):
             therapy_type=therapy_type,
             notes=notes,
             status="scheduled",
+            series_id=series_id,
         )
 
         if is_recurring:
+            # Strictly next 3 weeks (total 4 weeks / 1 month)
             for w in range(1, 4):
                 next_date = slot_date + timedelta(weeks=w)
                 ScheduleSlot.objects.create(
@@ -1034,11 +1038,73 @@ def schedule_add_view(request):
                     therapy_type=therapy_type,
                     notes=notes,
                     status="scheduled",
+                    series_id=series_id,
                 )
 
         messages.success(request, f"ვიზიტი დროს {start_time.strftime('%H:%M')} წარმატებით ჩაინიშნა.")
 
     next_url = request.POST.get("next") or "schedule"
+    return redirect(next_url)
+
+
+@login_required
+def schedule_edit_view(request, slot_id):
+    slot = get_object_or_404(ScheduleSlot, id=slot_id)
+    if not can_access_beneficiary(request.user, slot.beneficiary):
+        return HttpResponseForbidden()
+
+    if request.method == "POST":
+        beneficiary_id = request.POST.get("beneficiary")
+        beneficiary = get_object_or_404(Beneficiary, id=beneficiary_id)
+        if not can_access_beneficiary(request.user, beneficiary):
+            return HttpResponseForbidden()
+
+        date_str = request.POST.get("date")
+        if date_str:
+            try:
+                slot.date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+        time_str = request.POST.get("start_time")
+        if time_str:
+            try:
+                slot.start_time = datetime.strptime(time_str, "%H:%M").time()
+            except ValueError:
+                pass
+
+        try:
+            slot.duration_minutes = int(request.POST.get("duration_minutes", 50) or 50)
+        except (ValueError, TypeError):
+            slot.duration_minutes = 50
+
+        dummy_dt = datetime.combine(datetime.today(), slot.start_time) + timedelta(minutes=slot.duration_minutes)
+        slot.end_time = dummy_dt.time()
+
+        slot.beneficiary = beneficiary
+        slot.therapy_type = request.POST.get("therapy_type", slot.therapy_type)
+        slot.notes = request.POST.get("notes", "").strip()
+        slot.save()
+
+        # Update entire future series if requested
+        update_series = request.POST.get("update_series") == "on"
+        if update_series and slot.series_id:
+            future_slots = ScheduleSlot.objects.filter(
+                series_id=slot.series_id,
+                date__gt=slot.date
+            )
+            for f_slot in future_slots:
+                f_slot.start_time = slot.start_time
+                f_slot.duration_minutes = slot.duration_minutes
+                f_slot.end_time = slot.end_time
+                f_slot.beneficiary = slot.beneficiary
+                f_slot.therapy_type = slot.therapy_type
+                f_slot.notes = slot.notes
+                f_slot.save()
+
+        messages.success(request, "ვიზიტის მონაცემები წარმატებით განახლდა.")
+
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "schedule"
     return redirect(next_url)
 
 
@@ -1066,8 +1132,16 @@ def schedule_delete_view(request, slot_id):
         return HttpResponseForbidden()
 
     if request.method == "POST":
-        slot.delete()
-        messages.success(request, "ვიზიტი წაიშალა განრიგიდან.")
+        delete_mode = request.POST.get("delete_mode", "single")
+        if delete_mode == "series" and slot.series_id:
+            deleted_count, _ = ScheduleSlot.objects.filter(
+                series_id=slot.series_id,
+                date__gte=slot.date
+            ).delete()
+            messages.success(request, f"სერიის {deleted_count} ვიზიტი წარმატებით წაიშალა.")
+        else:
+            slot.delete()
+            messages.success(request, "ვიზიტი წაიშალა განრიგიდან.")
 
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "schedule"
     return redirect(next_url)

@@ -12,8 +12,26 @@ admin.site.site_title = "OT Progress პორტალი"
 admin.site.index_title = "სისტემის მონაცემთა ბაზა და მართვა"
 
 
+class StaffFullAccessAdmin(admin.ModelAdmin):
+    """Allows any staff user (not just superusers) full access to view, add, change, and delete"""
+    def has_module_permission(self, request):
+        return request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+    def has_add_permission(self, request):
+        return request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser)
+
+
 @admin.register(TherapistProfile)
-class TherapistProfileAdmin(admin.ModelAdmin):
+class TherapistProfileAdmin(StaffFullAccessAdmin):
     list_display = ["user", "title", "clinic_name", "phone", "is_admin_role"]
     list_filter = ["is_admin_role", "clinic_name"]
     search_fields = ["user__username", "user__first_name", "user__last_name", "title"]
@@ -36,7 +54,7 @@ class GoalInline(admin.TabularInline):
 
 
 @admin.register(Beneficiary)
-class BeneficiaryAdmin(admin.ModelAdmin):
+class BeneficiaryAdmin(StaffFullAccessAdmin):
     list_display = ["first_name", "last_name", "date_of_birth", "age_display", "therapist", "is_active", "start_date"]
     list_filter = ["is_active", "therapist", "start_date"]
     search_fields = ["first_name", "last_name", "notes"]
@@ -108,7 +126,7 @@ class SessionGoalInline(admin.TabularInline):
 
 
 @admin.register(Session)
-class SessionAdmin(admin.ModelAdmin):
+class SessionAdmin(StaffFullAccessAdmin):
     list_display = ["beneficiary", "therapist", "date", "duration_minutes", "initial_state", "final_state"]
     list_filter = ["date", "therapist", "initial_state", "final_state"]
     search_fields = ["beneficiary__first_name", "beneficiary__last_name", "notes"]
@@ -123,7 +141,7 @@ class ReportRevisionInline(admin.TabularInline):
 
 
 @admin.register(MonthlyReport)
-class MonthlyReportAdmin(admin.ModelAdmin):
+class MonthlyReportAdmin(StaffFullAccessAdmin):
     list_display = ["beneficiary", "therapist", "year", "month_display", "sessions_count", "is_finalized", "created_at"]
     list_filter = ["year", "month", "is_finalized", "therapist"]
     search_fields = ["beneficiary__first_name", "beneficiary__last_name", "section_1_directions"]
@@ -131,9 +149,24 @@ class MonthlyReportAdmin(admin.ModelAdmin):
 
 
 @admin.register(ScheduleSlot)
-class ScheduleSlotAdmin(admin.ModelAdmin):
-    list_display = ["date", "start_time", "end_time", "beneficiary", "therapist", "therapy_type", "status"]
+class ScheduleSlotAdmin(StaffFullAccessAdmin):
+    list_display = ["date", "start_time", "end_time", "beneficiary", "therapist", "therapy_type", "status", "is_series"]
     list_filter = ["date", "status", "therapy_type", "therapist"]
+    list_editable = ["status"]
+    date_hierarchy = "date"
     search_fields = ["beneficiary__first_name", "beneficiary__last_name", "notes"]
+    actions = ["mark_completed", "mark_missed"]
+
+    @admin.display(boolean=True, description="სერია")
+    def is_series(self, obj):
+        return bool(obj.series_id)
+
+    @admin.action(description="სტატუსის შეცვლა: ✓ ჩატარდა")
+    def mark_completed(self, request, queryset):
+        queryset.update(status="completed")
+
+    @admin.action(description="სტატუსის შეცვლა: ✕ გააცდინა")
+    def mark_missed(self, request, queryset):
+        queryset.update(status="missed")
 
 

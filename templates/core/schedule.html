@@ -69,7 +69,21 @@
                     {% if day_col.slots %}
                         <div class="space-y-1 w-full">
                             {% for slot in day_col.slots %}
-                            <div onclick="openEventDetails('{{ slot.id }}', '{{ slot.beneficiary.full_name|escapejs }}', '{{ slot.time_range_display }}', '{{ slot.therapy_type|escapejs }}', '{{ slot.status }}', '{% if slot.session %}{% url 'session_detail' slot.session.id %}{% else %}{% url 'session_create' %}?beneficiary_id={{ slot.beneficiary.id }}&slot_id={{ slot.id }}{% endif %}', '{{ slot.notes|default:''|escapejs }}')" 
+                            <div onclick="openEventDetails({
+                                    id: '{{ slot.id }}',
+                                    name: '{{ slot.beneficiary.full_name|escapejs }}',
+                                    beneficiaryId: '{{ slot.beneficiary.id }}',
+                                    date: '{{ slot.date|date:'Y-m-d' }}',
+                                    startTime: '{{ slot.start_time|time:'H:i' }}',
+                                    duration: '{{ slot.duration_minutes }}',
+                                    timeRange: '{{ slot.time_range_display }}',
+                                    therapyType: '{{ slot.therapy_type|escapejs }}',
+                                    status: '{{ slot.status }}',
+                                    sessionUrl: '{% if slot.session %}{% url 'session_detail' slot.session.id %}{% else %}{% url 'session_create' %}?beneficiary_id={{ slot.beneficiary.id }}&slot_id={{ slot.id }}{% endif %}',
+                                    hasSession: {% if slot.session %}true{% else %}false{% endif %},
+                                    notes: '{{ slot.notes|default:''|escapejs }}',
+                                    hasSeries: {% if slot.series_id %}true{% else %}false{% endif %}
+                                 })" 
                                  class="cursor-pointer rounded-md sm:rounded-lg p-1 sm:p-1.5 transition shadow-xs hover:shadow-md 
                                         {% if slot.status == 'completed' %}bg-emerald-50 border-l-2 sm:border-l-4 border-emerald-500 text-emerald-900
                                         {% elif slot.status == 'missed' %}bg-rose-50 border-l-2 sm:border-l-4 border-rose-500 text-rose-900
@@ -77,7 +91,7 @@
                                  title="{{ slot.beneficiary.full_name }} ({{ slot.time_range_display }})">
                                 
                                 <div class="flex items-center justify-between text-[8px] sm:text-[10px] font-bold opacity-80 leading-none">
-                                    <span class="truncate">{{ slot.start_time|time:"H:i" }}</span>
+                                    <span class="truncate">{{ slot.start_time|time:"H:i" }}{% if slot.series_id %}<span class="text-[9px] ml-0.5" title="განმეორებადი სერია">🔄</span>{% endif %}</span>
                                     {% if slot.status == 'completed' %}
                                         <span class="text-emerald-700 font-black">✓</span>
                                     {% elif slot.status == 'missed' %}
@@ -115,13 +129,16 @@
 
 <!-- ==================== POPUP: EVENT DETAILS & QUICK ACTIONS ==================== -->
 <div id="popover-event" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+    <div class="bg-white rounded-3xl p-5 sm:p-6 max-w-sm w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
         <div class="flex items-start justify-between">
             <div>
                 <h3 id="pop-name" class="text-base font-black text-slate-900"></h3>
                 <div id="pop-time" class="text-xs font-bold text-slate-500 mt-0.5"></div>
                 <div id="pop-type" class="text-xs font-semibold text-blue-600 mt-0.5"></div>
-                <div id="pop-notes" class="text-xs text-slate-500 italic mt-1 hidden"></div>
+                <div id="pop-series-badge" class="hidden inline-flex items-center text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md mt-1.5">
+                    🔄 განმეორებადი სერია (1 თვე)
+                </div>
+                <div id="pop-notes" class="text-xs text-slate-500 italic mt-1.5 hidden"></div>
             </div>
             <button onclick="closeEventDetails()" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold p-1">✕</button>
         </div>
@@ -146,25 +163,69 @@
             </form>
         </div>
 
-        <!-- Session & Delete Actions -->
-        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-            <form id="delete-form" method="POST" action="" onsubmit="return confirm('წაიშალოს ეს ჩანაწერი განრიგიდან?');">
-                {% csrf_token %}
-                <button type="submit" class="text-xs text-rose-500 hover:text-rose-700 font-bold p-1 hover:underline">
+        <!-- Action Buttons: Delete, Edit, Session -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-1.5">
+                <!-- Delete Button -->
+                <button onclick="triggerDelete()" type="button" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl text-xs font-bold transition flex items-center" title="წაშლა">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     წაშლა
                 </button>
-            </form>
 
-            <a id="pop-session-link" href="#" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-blue-600/30 flex items-center">
-                სესიის ჩაწერა →
+                <!-- Edit Button -->
+                <button onclick="openEditModal()" type="button" class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl text-xs font-bold transition flex items-center" title="რედაქტირება">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    შეცვლა
+                </button>
+            </div>
+
+            <!-- Session Link -->
+            <a id="pop-session-link" href="#" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-blue-600/30 flex items-center shrink-0">
+                სესია →
             </a>
         </div>
     </div>
 </div>
 
+<!-- Hidden Delete Form -->
+<form id="delete-form" method="POST" action="" class="hidden">
+    {% csrf_token %}
+    <input type="hidden" name="delete_mode" id="delete-mode-input" value="single">
+</form>
+
+<!-- Modal: Delete Recurring Choice -->
+<div id="modal-delete-choice" class="fixed inset-0 bg-slate-900/50 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center space-x-3 text-rose-600">
+            <div class="p-2 bg-rose-50 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-base font-black text-slate-900">ვიზიტის წაშლა</h3>
+        </div>
+        <p class="text-xs text-slate-600 font-medium">
+            ეს ვიზიტი განმეორებადი სერიის ნაწილია. როგორ გსურთ წაშლა?
+        </p>
+        <div class="space-y-2 pt-2">
+            <button onclick="submitDelete('single')" type="button" class="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition text-left flex items-center justify-between">
+                <span>მხოლოდ ამ დღის ვიზიტის წაშლა</span>
+                <span class="text-slate-400 font-normal">→</span>
+            </button>
+            <button onclick="submitDelete('series')" type="button" class="w-full py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition text-left flex items-center justify-between">
+                <span>მთელი სერიის წაშლა (მომდევნო კვირებიც)</span>
+                <span class="text-rose-500 font-black">✕</span>
+            </button>
+        </div>
+        <div class="pt-2 text-right border-t border-slate-100">
+            <button onclick="closeDeleteChoice()" type="button" class="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-1.5">
+                გაუქმება
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ==================== MODAL: ADD APPOINTMENT ==================== -->
-<div id="modal-add" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
+<div id="modal-add" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div class="bg-white rounded-3xl p-5 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 my-auto animate-in fade-in zoom-in duration-150">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="text-base font-black text-slate-900">
                 + ვიზიტის ჩანიშვნა განრიგში
@@ -222,10 +283,10 @@
             </div>
 
             <!-- 4. Recurring Checkbox -->
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center space-x-2">
-                <input type="checkbox" name="is_recurring" id="is_recurring" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
-                <label for="is_recurring" class="text-xs text-slate-700 font-semibold cursor-pointer select-none">
-                    განმეორდეს ყოველკვირეულად (მომდევნო 1 თვე)
+            <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 flex items-center space-x-2">
+                <input type="checkbox" name="is_recurring" id="is_recurring" class="w-4 h-4 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500">
+                <label for="is_recurring" class="text-xs text-indigo-950 font-semibold cursor-pointer select-none">
+                    განმეორდეს ყოველკვირეულად (მომდევნო 1 თვე / 4 კვირა)
                 </label>
             </div>
 
@@ -248,7 +309,94 @@
     </div>
 </div>
 
+<!-- ==================== MODAL: EDIT APPOINTMENT ==================== -->
+<div id="modal-edit" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
+    <div class="bg-white rounded-3xl p-5 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 my-auto animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="text-base font-black text-slate-900">
+                ✏️ ვიზიტის რედაქტირება
+            </h3>
+            <button onclick="closeEditModal()" type="button" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+        </div>
+
+        <form id="edit-form" method="POST" action="" class="space-y-3.5 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+            <!-- 1. Beneficiary Select -->
+            <div>
+                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">ბავშვი *</label>
+                <select name="beneficiary" id="edit-beneficiary" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    {% for b in beneficiaries %}
+                    <option value="{{ b.id }}">{{ b.full_name }} ({{ b.age_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 2. Date & Time -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">თარიღი *</label>
+                    <input type="date" name="date" id="edit-date" required class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">დაწყების დრო *</label>
+                    <input type="time" name="start_time" id="edit-time" required class="w-full p-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- 3. Duration & Therapy Type -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">ხანგრძლივობა</label>
+                    <select name="duration_minutes" id="edit-duration" class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="50">50 წუთი</option>
+                        <option value="45">45 წუთი</option>
+                        <option value="40">40 წუთი</option>
+                        <option value="60">60 წუთი</option>
+                        <option value="30">30 წუთი</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">თერაპია</label>
+                    <select name="therapy_type" id="edit-type" class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        {% for t in therapy_types %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 4. Recurring Series Sync Checkbox (shown only if slot is part of series) -->
+            <div id="edit-series-option" class="p-3 bg-indigo-50/80 rounded-xl border border-indigo-100 flex items-center space-x-2 hidden">
+                <input type="checkbox" name="update_series" id="edit-update-series" class="w-4 h-4 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500">
+                <label for="edit-update-series" class="text-xs text-indigo-950 font-semibold cursor-pointer select-none">
+                    გავრცელდეს სერიის მომდევნო ვიზიტებზეც (დრო, ხანგრძლივობა, შენიშვნა)
+                </label>
+            </div>
+
+            <!-- 5. Notes -->
+            <div>
+                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">შენიშვნა (არასავალდებულო)</label>
+                <input type="text" name="notes" id="edit-notes" placeholder="მაგ. მშობელთან გასაუბრება" class="w-full p-2.5 rounded-xl border border-slate-200 font-normal text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-3 flex items-center justify-end space-x-2 border-t border-slate-100">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">
+                    გაუქმება
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shadow-sm shadow-blue-600/30">
+                    შენახვა
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    let currentEvent = null;
+
     function openAddModal(dateStr, timeStr) {
         if (dateStr) document.getElementById('add-date').value = dateStr;
         if (timeStr) document.getElementById('add-time').value = timeStr;
@@ -259,22 +407,30 @@
         document.getElementById('modal-add').classList.add('hidden');
     }
 
-    function openEventDetails(slotId, name, time, type, status, sessionUrl, notes) {
-        document.getElementById('pop-name').innerText = name;
-        document.getElementById('pop-time').innerText = time;
-        document.getElementById('pop-type').innerText = type;
+    function openEventDetails(eventObj) {
+        currentEvent = eventObj;
+        document.getElementById('pop-name').innerText = eventObj.name;
+        document.getElementById('pop-time').innerText = eventObj.timeRange;
+        document.getElementById('pop-type').innerText = eventObj.therapyType;
+
+        const badgeEl = document.getElementById('pop-series-badge');
+        if (eventObj.hasSeries) {
+            badgeEl.classList.remove('hidden');
+        } else {
+            badgeEl.classList.add('hidden');
+        }
 
         const notesEl = document.getElementById('pop-notes');
-        if (notes && notes.trim() !== "") {
-            notesEl.innerText = notes;
+        if (eventObj.notes && eventObj.notes.trim() !== "") {
+            notesEl.innerText = eventObj.notes;
             notesEl.classList.remove('hidden');
         } else {
             notesEl.classList.add('hidden');
         }
 
-        document.getElementById('status-form').action = "/schedule/" + slotId + "/status/";
-        document.getElementById('delete-form').action = "/schedule/" + slotId + "/delete/";
-        document.getElementById('pop-session-link').href = sessionUrl;
+        document.getElementById('status-form').action = "/schedule/" + eventObj.id + "/status/";
+        document.getElementById('delete-form').action = "/schedule/" + eventObj.id + "/delete/";
+        document.getElementById('pop-session-link').href = eventObj.sessionUrl;
 
         document.getElementById('popover-event').classList.remove('hidden');
     }
@@ -286,6 +442,58 @@
     function submitStatus(status) {
         document.getElementById('status-input').value = status;
         document.getElementById('status-form').submit();
+    }
+
+    function triggerDelete() {
+        if (!currentEvent) return;
+        if (currentEvent.hasSeries) {
+            closeEventDetails();
+            document.getElementById('modal-delete-choice').classList.remove('hidden');
+        } else {
+            if (confirm('წაიშალოს ეს ჩანაწერი განრიგიდან?')) {
+                submitDelete('single');
+            }
+        }
+    }
+
+    function closeDeleteChoice() {
+        document.getElementById('modal-delete-choice').classList.add('hidden');
+    }
+
+    function submitDelete(mode) {
+        if (!currentEvent) return;
+        document.getElementById('delete-form').action = "/schedule/" + currentEvent.id + "/delete/";
+        document.getElementById('delete-mode-input').value = mode;
+        document.getElementById('delete-form').submit();
+    }
+
+    function openEditModal() {
+        if (!currentEvent) return;
+        closeEventDetails();
+        
+        document.getElementById('edit-form').action = "/schedule/" + currentEvent.id + "/edit/";
+        document.getElementById('edit-beneficiary').value = currentEvent.beneficiaryId;
+        document.getElementById('edit-date').value = currentEvent.date;
+        document.getElementById('edit-time').value = currentEvent.startTime;
+        document.getElementById('edit-duration').value = currentEvent.duration;
+        document.getElementById('edit-type').value = currentEvent.therapyType;
+        document.getElementById('edit-notes').value = currentEvent.notes || "";
+
+        const seriesOptionEl = document.getElementById('edit-series-option');
+        const seriesCheckbox = document.getElementById('edit-update-series');
+        if (currentEvent.hasSeries) {
+            seriesOptionEl.classList.remove('hidden');
+            seriesCheckbox.checked = false;
+        } else {
+            seriesOptionEl.classList.add('hidden');
+            seriesCheckbox.checked = false;
+        }
+
+        document.getElementById('modal-edit').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('modal-edit').classList.add('hidden');
     }
 </script>
 {% endblock %}

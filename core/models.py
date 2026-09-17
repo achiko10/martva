@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import date
+import uuid
 
 
 class TherapistProfile(models.Model):
@@ -673,6 +674,7 @@ class ScheduleSlot(models.Model):
         related_name="schedule_slots",
         verbose_name="მიბმული სესია"
     )
+    series_id = models.UUIDField(null=True, blank=True, db_index=True, verbose_name="სერიის ID")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="შექმნის დრო")
 
     class Meta:
