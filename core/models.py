@@ -54,6 +54,10 @@ class Beneficiary(models.Model):
         return f"{self.first_name} {self.last_name}"
 
     @property
+    def active_goals_count(self):
+        return self.goals.filter(status="active").count()
+
+    @property
     def age_display(self):
         """Calculates age in years and months in Georgian"""
         today = date.today()
@@ -269,12 +273,24 @@ class Goal(models.Model):
 
 class SensorySystem(models.Model):
     CATEGORY_CHOICES = [
-        ("movement", "მოძრაობა და სხეული"),
-        ("tactile_sensory", "შეხება და შეგრძნება"),
-        ("environment", "გარემო და აღქმა"),
+        ("movement", "ვესტიბულარული, პროპრიოცეპტული და სხეულის რეგულაცია"),
+        ("tactile_sensory", "ტაქტილური, აუდიტორული, ვიზუალური და ორო-მოტორული სენსორიკა"),
+        ("praxis_motor", "პრაქსისი, უხეში და წვრილი მოტორიკა"),
+        ("environment", "თვითმოვლა (ADL), თამაში, აღმასრულებელი უნარები და ინტეროცეფცია"),
     ]
 
-    name = models.CharField(max_length=100, unique=True, verbose_name="დასახელება")
+    EVALUATION_SCHEMA_CHOICES = [
+        ("vestibular", "ვესტიბულარული და პოსტურალური (ვექტორი, ტემპი, რეაქცია)"),
+        ("proprioceptive", "პროპრიოცეპტული და სხეულის სქემა (დატვირთვა, ძალის გრადაცია, ეფექტი)"),
+        ("tactile", "ტაქტილური და ჰაპტიკური (კონტაქტის ფორმა, ტოლერანტობა, დისკრიმინაცია)"),
+        ("sensory_perception", "აუდიტორული, ვიზუალური და ორო-მოტორული (მოდულაცია და აღქმა)"),
+        ("praxis_gross", "პრაქსისი და უხეში მოტორიკა (პრაქსისის ფაზა, დახმარების დონე, ხარისხი)"),
+        ("fine_motor", "წვრილი მოტორიკა და გრაფომოტორიკა (ჩაჭიდება, დახმარების დონე, სიზუსტე)"),
+        ("adl_play", "თვითმოვლა (ADL), თამაში და აღმასრულებელი (ინიცირება, დახმარების 6 დონე)"),
+        ("interoception", "ინტეროცეფცია და თვითრეგულაცია (გაცნობიერება, სტრატეგიის გამოყენება)"),
+    ]
+
+    name = models.CharField(max_length=150, unique=True, verbose_name="დასახელება")
     slug = models.SlugField(max_length=100, unique=True, verbose_name="სლაგი")
     category = models.CharField(
         max_length=30,
@@ -282,13 +298,19 @@ class SensorySystem(models.Model):
         default="movement",
         verbose_name="კატეგორია"
     )
+    evaluation_schema = models.CharField(
+        max_length=30,
+        choices=EVALUATION_SCHEMA_CHOICES,
+        default="sensory_perception",
+        verbose_name="ჭკვიანი შეფასების სქემა"
+    )
     icon = models.CharField(max_length=50, blank=True, verbose_name="ხატულა/სიმბოლო")
     description = models.TextField(blank=True, verbose_name="აღწერა")
     order = models.PositiveIntegerField(default=0, verbose_name="თანმიმდევრობა")
 
     class Meta:
-        verbose_name = "სენსორული სისტემა"
-        verbose_name_plural = "სენსორული სისტემები"
+        verbose_name = "თერაპიული/სენსორული მიმართულება"
+        verbose_name_plural = "თერაპიული/სენსორული მიმართულებები"
         ordering = ["order", "name"]
 
     def __str__(self):
@@ -307,9 +329,9 @@ class SensoryActivity(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="აქტიურია")
 
     class Meta:
-        verbose_name = "სენსორული აქტივობა"
-        verbose_name_plural = "სენსორული აქტივობები"
-        ordering = ["sensory_system", "name"]
+        verbose_name = "თერაპიული/სენსორული აქტივობა"
+        verbose_name_plural = "თერაპიული/სენსორული აქტივობები"
+        ordering = ["sensory_system", "id"]
         unique_together = ["sensory_system", "name"]
 
     def __str__(self):
@@ -353,6 +375,14 @@ class Session(models.Model):
         ("red", "წითელი ზონა (კრიზისი / დისტრესი)"),
     ]
 
+    ENTRY_ADAPTATION_CHOICES = [
+        ("calm_organized", "მშვიდი და ორგანიზებული შემოსვლა (უპრობლემოდ განშორდა მშობელს)"),
+        ("hesitant_supported", "ყოყმანით / მცირე მხარდაჭერით (ვერბალური წახალისებით ან სათამაშოთი)"),
+        ("separation_protest", "განშორების სირთულე / პროტესტი (დასჭირდა დრო დასამშვიდებლად)"),
+        ("cautious_hyperreactive", "გარემოს მიმართ ფრთხილი / დაძაბული (ერიდება ახალ სტიმულებს)"),
+        ("impulsive_disorganized", "იმპულსური / დეზორგანიზებული შემოსვლა (ქაოსური მოძრაობა)"),
+    ]
+
     INITIAL_STATE_CHOICES = ALERT_ZONE_CHOICES
     FINAL_STATE_CHOICES = ALERT_ZONE_CHOICES
 
@@ -372,6 +402,13 @@ class Session(models.Model):
     )
     date = models.DateField(default=timezone.now, verbose_name="სესიის თარიღი")
     duration_minutes = models.PositiveIntegerField(default=50, verbose_name="ხანგრძლივობა (წთ)")
+    entry_adaptation = models.CharField(
+        max_length=40,
+        choices=ENTRY_ADAPTATION_CHOICES,
+        default="calm_organized",
+        blank=True,
+        verbose_name="შემოსვლა და გარემოსთან ადაპტაცია"
+    )
     initial_state = models.CharField(
         max_length=30,
         choices=INITIAL_STATE_CHOICES,
@@ -430,49 +467,52 @@ class SessionGoal(models.Model):
 
 class SessionSensoryActivity(models.Model):
     INTENSITY_CHOICES = [
-        ("low", "დაბალი"),
-        ("medium", "საშუალო"),
-        ("high", "მაღალი"),
+        ("low", "მსუბუქი / დაბალი"),
+        ("medium", "ზომიერი / საშუალო"),
+        ("high", "მაღალი დატვირთვა"),
     ]
 
     ASSISTANCE_CHOICES = [
-        ("independent", "დამოუკიდებლად"),
-        ("verbal", "სიტყვიერი მითითება"),
-        ("minimal", "მცირე დახმარება"),
-        ("moderate", "საშუალო დახმარება"),
-        ("maximal", "დიდი დახმარება"),
-        ("full", "სრული დახმარება"),
+        ("independent", "დამოუკიდებლად (100%)"),
+        ("environmental", "გარემოს ადაპტაცია / ვიზუალური სქემა"),
+        ("verbal", "ვერბალური მინიშნება"),
+        ("gestural_modeling", "ჟესტური მინიშნება / მოდელირება (ჩვენება)"),
+        ("minimal", "მცირე ფიზიკური დახმარება"),
+        ("moderate", "ნაწილობრივი ფიზიკური დახმარება"),
+        ("maximal", "დიდი ფიზიკური დახმარება (Hand-over-hand)"),
+        ("full", "სრული ფიზიკური მართვა"),
     ]
 
     ACTIVITY_START_CHOICES = [
-        ("independent", "დამოუკიდებლად დაიწყო"),
-        ("cue", "მითითების შემდეგ"),
-        ("assisted", "დახმარებით"),
+        ("independent", "თვითონ იწყებს (დამოუკიდებლად)"),
+        ("cue", "ვიზუალური/ვერბალური მინიშნებით"),
+        ("assisted", "საჭიროებს ფიზიკურ ბიძგს"),
     ]
 
     DIRECTION_CHOICES = [
         ("none", "არ გამოიყენება"),
-        ("forward", "წინ"),
+        ("forward", "წინ-უკან (სწორხაზოვანი)"),
         ("backward", "უკან"),
-        ("left", "მარცხნივ"),
+        ("left", "გვერდითი (ლატერალური)"),
         ("right", "მარჯვნივ"),
-        ("up", "ზემოთ"),
+        ("up", "ვერტიკალური (ზემოთ-ქვემოთ)"),
         ("down", "ქვემოთ"),
-        ("circular", "წრიული"),
-        ("various", "სხვადასხვა მიმართულება"),
+        ("circular", "როტაციული (წრიული)"),
+        ("various", "მულტი-მიმართულებითი"),
     ]
 
     SPEED_CHOICES = [
         ("none", "არ გამოიყენება"),
-        ("slow", "ნელი"),
-        ("medium", "საშუალო"),
-        ("fast", "სწრაფი"),
+        ("slow", "ნელი და რიტმული (დამამშვიდებელი)"),
+        ("medium", "ზომიერი ტემპი"),
+        ("fast", "ცვალებადი / სწრაფი (მასტიმულირებელი)"),
     ]
 
     INTEROCEPTION_CHOICES = [
         ("none", "არ გამოიყენება"),
-        ("self_expressed", "ბავშვმა თვითონ გამოხატა/დაასახელა"),
-        ("observed", "თერაპევტმა დააკვირდა"),
+        ("self_expressed", "დამოუკიდებლად გამოხატა/დაასახელა"),
+        ("cued_recognized", "თერაპევტის მინიშნების შემდეგ ამოიცნო"),
+        ("observed", "მხოლოდ თერაპევტმა შეამჩნია გარეგანი ნიშნებით"),
     ]
 
     session = models.ForeignKey(
@@ -487,7 +527,7 @@ class SessionSensoryActivity(models.Model):
         related_name="session_activities",
         verbose_name="სენსორული აქტივობა"
     )
-    duration_minutes = models.PositiveIntegerField(default=5, verbose_name="ხანგრძლივობა (წთ)")
+    duration_minutes = models.PositiveIntegerField(default=10, verbose_name="ხანგრძლივობა (წთ)")
     intensity = models.CharField(
         max_length=20,
         choices=INTENSITY_CHOICES,
@@ -496,9 +536,9 @@ class SessionSensoryActivity(models.Model):
     )
     repetition_count = models.PositiveIntegerField(default=1, verbose_name="გამეორება")
     assistance_level = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=ASSISTANCE_CHOICES,
-        default="moderate",
+        default="verbal",
         verbose_name="დახმარების დონე"
     )
     activity_start = models.CharField(
@@ -520,10 +560,15 @@ class SessionSensoryActivity(models.Model):
         verbose_name="სიჩქარე"
     )
     interoception_mode = models.CharField(
-        max_length=20,
+        max_length=25,
         choices=INTEROCEPTION_CHOICES,
         default="none",
         verbose_name="ინტერცეპციის ფიქსაცია"
+    )
+    evaluation_data = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="ჭკვიანი შეფასების პარამეტრები"
     )
     responses = models.ManyToManyField(
         SensoryResponse,
@@ -534,11 +579,41 @@ class SessionSensoryActivity(models.Model):
     notes = models.CharField(max_length=255, blank=True, verbose_name="შენიშვნა")
 
     class Meta:
-        verbose_name = "სესიის სენსორული აქტივობა"
-        verbose_name_plural = "სესიის სენსორული აქტივობები"
+        verbose_name = "სესიის აქტივობა"
+        verbose_name_plural = "სესიის აქტივობები"
 
     def __str__(self):
         return f"{self.sensory_activity.name} ({self.duration_minutes} წთ)"
+
+    @property
+    def smart_badges(self):
+        """Returns structured list of (label, value) pairs from evaluation_data for clinical display"""
+        if not self.evaluation_data or not isinstance(self.evaluation_data, dict):
+            return []
+        label_map = {
+            "vector": "ვექტორი",
+            "tempo": "ტემპი",
+            "reaction": "რეაქცია",
+            "intensity_label": "დატვირთვა",
+            "force_modulation": "ძალის გრადაცია",
+            "reg_effect": "ეფექტი",
+            "contact_form": "კონტაქტი",
+            "tactile_response": "ტოლერანტობა",
+            "perception_response": "მოდულაცია/პასუხი",
+            "praxis_stage": "პრაქსისის ფაზა",
+            "prompt_label": "დახმარება",
+            "motor_quality": "მოძრაობის ხარისხი",
+            "grasp_type": "ჩაჭიდება",
+            "accuracy": "სიზუსტე",
+            "initiation": "ინიცირება",
+            "awareness": "გაცნობიერება",
+            "strategy": "სტრატეგია",
+        }
+        badges = []
+        for k, v in self.evaluation_data.items():
+            if v and k in label_map:
+                badges.append((label_map[k], v))
+        return badges
 
 
 class MonthlyReport(models.Model):
@@ -621,7 +696,7 @@ class ReportRevision(models.Model):
     )
     revision_note = models.CharField(max_length=255, blank=True, verbose_name="ცვლილების შენიშვნა")
     snapshot_data = models.JSONField(default=dict, verbose_name="მონაცემთა სნეპშოტი")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="რევიზიის დრო")
+    created_at = models.DateTimeField(auto_now=True, verbose_name="რევიზიის დრო")
 
     class Meta:
         verbose_name = "ანგარიშის რევიზია"
@@ -683,7 +758,7 @@ class ScheduleSlot(models.Model):
         ordering = ["date", "start_time"]
 
     def save(self, *args, **kwargs):
-        if not self.end_time and self.start_time:
+        if self.start_time:
             from datetime import datetime, timedelta
             dummy_dt = datetime.combine(datetime.today(), self.start_time) + timedelta(minutes=self.duration_minutes)
             self.end_time = dummy_dt.time()
@@ -697,5 +772,3 @@ class ScheduleSlot(models.Model):
         s = self.start_time.strftime("%H:%M")
         e = self.end_time.strftime("%H:%M") if self.end_time else ""
         return f"{s} - {e}" if e else s
-
-

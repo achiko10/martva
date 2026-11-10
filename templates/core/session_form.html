@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}სესიის ჩაწერა — OT Progress{% endblock %}
+{% block title %}სესიის ჩაწერა (ჭკვიანი ჩეკლისტი) — OT Progress{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto py-3">
+<div class="max-w-4xl mx-auto py-3">
 
     <!-- Top Breadcrumb / Cancel -->
     <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-black text-slate-900 flex items-center">
-            ⏱️ სესიის ჩაწერა
-        </h1>
+        <div>
+            <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                <span>📋 კლინიკური სესიის ჩაწერა</span>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-700">Smart Checklists</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">8 სტრუქტურირებული მიმართულება • კონტექსტური შეფასების პანელები • ავტო-ნარატივი</p>
+        </div>
         <a href="{% url 'dashboard' %}" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition">
             გაუქმება ✕
         </a>
@@ -23,36 +27,42 @@
 
             <!-- Step 1 Button -->
             <button type="button" onclick="goToStep(1)" id="step-btn-1"
-                    class="relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1 sm:space-x-2 bg-blue-600 text-white px-2 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold shadow-sm transition">
+                    class="relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 sm:space-x-2 bg-blue-600 text-white px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold shadow-sm transition">
                 <span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white text-blue-600 flex items-center justify-center text-[10px] sm:text-[11px] font-black shrink-0">1</span>
-                <span class="truncate">შემოსვლა</span>
+                <span class="truncate">შემოსვლა და რეგულაცია</span>
             </button>
 
             <!-- Step 2 Button -->
             <button type="button" onclick="goToStep(2)" id="step-btn-2"
-                    class="relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1 sm:space-x-2 bg-slate-100 text-slate-500 px-2 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition">
+                    class="relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 sm:space-x-2 bg-slate-100 text-slate-500 px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition">
                 <span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] sm:text-[11px] font-black shrink-0">2</span>
-                <span class="truncate">აქტივობები</span>
+                <span class="truncate">ჭკვიანი ჩეკლისტები</span>
+                <span id="selected-act-badge" class="hidden px-1.5 py-0.2 rounded-full bg-blue-600 text-white text-[10px]">0</span>
             </button>
 
             <!-- Step 3 Button -->
             <button type="button" onclick="goToStep(3)" id="step-btn-3"
-                    class="relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1 sm:space-x-2 bg-slate-100 text-slate-500 px-2 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition">
+                    class="relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 sm:space-x-2 bg-slate-100 text-slate-500 px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition">
                 <span class="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] sm:text-[11px] font-black shrink-0">3</span>
-                <span class="truncate">შედეგი</span>
+                <span class="truncate">შედეგი და შეჯამება</span>
             </button>
         </div>
     </div>
 
     <form method="post" id="session-wizard-form">
         {% csrf_token %}
+        {% if slot_id %}
+        <input type="hidden" name="slot_id" value="{{ slot_id }}">
+        {% endif %}
 
-        <!-- ==================== STEP 1: CHILD & INITIAL REGULATION ==================== -->
+        <!-- ==================== STEP 1: CHILD, ADAPTATION & INITIAL REGULATION ==================== -->
         <div id="wizard-step-1" class="space-y-4">
-            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-5">
+                
+                <!-- Beneficiary, Date, Duration -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">ბავშვი *</label>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">ბენეფიციარი *</label>
                         <select name="beneficiary" id="beneficiary-select" required
                                 hx-get="{% url 'htmx_beneficiary_goals' %}"
                                 hx-target="#goals-container"
@@ -60,60 +70,86 @@
                                 class="w-full p-2.5 rounded-xl border border-slate-200 text-sm font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             {% for b in beneficiaries %}
                             <option value="{{ b.id }}" {% if selected_beneficiary and selected_beneficiary.id == b.id %}selected{% endif %}>
-                                {{ b.full_name }}
+                                {{ b.full_name }} ({{ b.age_display }})
                             </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">თარიღი</label>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">სესიის თარიღი</label>
                         <input type="date" name="date" value="{{ today_date }}" required
                                class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">ხანგრძლივობა (წთ)</label>
+                        <select name="duration_minutes" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="30">30 წუთი</option>
+                            <option value="45">45 წუთი</option>
+                            <option value="50" selected>50 წუთი</option>
+                            <option value="60">60 წუთი</option>
+                        </select>
+                    </div>
                 </div>
 
-                <input type="hidden" name="duration_minutes" value="50">
+                <!-- 1.1 Entry Adaptation & Separation -->
+                <div class="pt-4 border-t border-slate-100">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5">
+                        1.1. შემოსვლა, მშობელთან განშორება და გარემოსთან ადაპტაცია:
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {% for val, label in entry_adaptation_choices %}
+                        <label class="cursor-pointer block">
+                            <input type="radio" name="entry_adaptation" value="{{ val }}" data-label="{{ label }}"
+                                   {% if val == 'calm_organized' %}checked{% endif %} class="sr-only peer">
+                            <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/80 peer-checked:text-blue-950 transition h-full flex items-start space-x-2">
+                                <span class="w-4 h-4 mt-0.5 rounded-full border border-slate-300 flex items-center justify-center shrink-0 peer-checked:border-blue-600 peer-checked:bg-blue-600 text-white text-[10px]">✓</span>
+                                <span class="text-xs font-semibold leading-snug">{{ label }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
 
-                <!-- Alert Program 4 Zones for Initial State -->
-                <div class="pt-2 border-t border-slate-100">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                        საწყისი რეგულაციის მდგომარეობა (შემოსვლისას):
+                <!-- 1.2 Alert Program 4 Zones for Initial State -->
+                <div class="pt-4 border-t border-slate-100">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5">
+                        1.2. საწყისი რეგულაციისა და აგზნებადობის ზონა (Alert Program® — შემოსვლისას):
                     </label>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                         <!-- Blue Zone -->
                         <label class="cursor-pointer">
-                            <input type="radio" name="initial_state" value="blue" class="sr-only peer">
-                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-blue-50/50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition shadow-sm">
+                            <input type="radio" name="initial_state" value="blue" data-label="ლურჯი ზონა (ჰიპოაქტიური / დაბალი ტონუსი)" class="sr-only peer">
+                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-blue-50/50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition shadow-sm h-full">
                                 <div class="w-6 h-6 rounded-full bg-blue-500 mx-auto mb-2 shadow-sm"></div>
                                 <div class="text-xs font-bold text-slate-800">ლურჯი ზონა</div>
-                                <div class="text-[10px] text-slate-500 mt-0.5">დაბალი ენერგია / მოდუნებული</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">ჰიპოაქტიური / მოდუნებული / დაღლილი</div>
                             </div>
                         </label>
                         <!-- Green Zone (Default) -->
                         <label class="cursor-pointer">
-                            <input type="radio" name="initial_state" value="green" checked class="sr-only peer">
-                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-emerald-50/50 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition shadow-sm">
+                            <input type="radio" name="initial_state" value="green" data-label="მწვანე ზონა (ოპტიმალური აგზნებადობა)" checked class="sr-only peer">
+                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-emerald-50/50 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition shadow-sm h-full">
                                 <div class="w-6 h-6 rounded-full bg-emerald-500 mx-auto mb-2 shadow-sm"></div>
                                 <div class="text-xs font-bold text-slate-800">მწვანე ზონა</div>
-                                <div class="text-[10px] text-slate-500 mt-0.5">ოპტიმალური / მშვიდი, მზადმყოფი</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">ოპტიმალური / მშვიდი, ფოკუსირებული</div>
                             </div>
                         </label>
                         <!-- Yellow Zone -->
                         <label class="cursor-pointer">
-                            <input type="radio" name="initial_state" value="yellow" class="sr-only peer">
-                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-amber-50/50 peer-checked:border-amber-500 peer-checked:bg-amber-50 transition shadow-sm">
+                            <input type="radio" name="initial_state" value="yellow" data-label="ყვითელი ზონა (მომატებული აგზნებადობა)" class="sr-only peer">
+                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-amber-50/50 peer-checked:border-amber-500 peer-checked:bg-amber-50 transition shadow-sm h-full">
                                 <div class="w-6 h-6 rounded-full bg-amber-500 mx-auto mb-2 shadow-sm"></div>
                                 <div class="text-xs font-bold text-slate-800">ყვითელი ზონა</div>
-                                <div class="text-[10px] text-slate-500 mt-0.5">მომატებული / აღგზნებული</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">მომატებული / მოუსვენარი / სენსორული ძიება</div>
                             </div>
                         </label>
                         <!-- Red Zone -->
                         <label class="cursor-pointer">
-                            <input type="radio" name="initial_state" value="red" class="sr-only peer">
-                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-rose-50/50 peer-checked:border-rose-500 peer-checked:bg-rose-50 transition shadow-sm">
+                            <input type="radio" name="initial_state" value="red" data-label="წითელი ზონა (მწვავე დისრეგულაცია / დისტრესი)" class="sr-only peer">
+                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-rose-50/50 peer-checked:border-rose-500 peer-checked:bg-rose-50 transition shadow-sm h-full">
                                 <div class="w-6 h-6 rounded-full bg-rose-500 mx-auto mb-2 shadow-sm"></div>
                                 <div class="text-xs font-bold text-slate-800">წითელი ზონა</div>
-                                <div class="text-[10px] text-slate-500 mt-0.5">კრიზისი / დისტრესი</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">მწვავე დისრეგულაცია / აფექტი / პროტესტი</div>
                             </div>
                         </label>
                     </div>
@@ -123,200 +159,381 @@
             <div class="flex justify-end pt-2">
                 <button type="button" onclick="goToStep(2)"
                         class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition flex items-center justify-center">
-                    <span>შემდეგი: აქტივობები და მიზნები</span>
+                    <span>შემდეგი: მიზნები და ჭკვიანი ჩეკლისტები</span>
                     <span class="ml-1.5 text-sm">→</span>
                 </button>
             </div>
         </div>
 
-        <!-- ==================== STEP 2: ACTIVITIES & GOALS ==================== -->
+        <!-- ==================== STEP 2: GOALS & 8 SMART CLINICAL CHECKLISTS ==================== -->
         <div id="wizard-step-2" class="space-y-4 hidden">
             
-            <!-- Goals selection -->
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-2.5">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                    მიზნები, რომლებზეც ვიმუშავეთ (მონიშნეთ):
-                </span>
+            <!-- Goals selection with live numeric update -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-700">
+                        2.1. ინდივიდუალური SMART მიზნები (მონიშნეთ და შეიყვანეთ დღევანდელი მაჩვენებელი):
+                    </span>
+                </div>
                 <div id="goals-container">
-                    <div class="flex flex-wrap gap-2">
+                    {% if selected_beneficiary and selected_beneficiary.goals.all %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {% for g in selected_beneficiary.goals.all %}
                         {% if g.status == 'active' %}
-                        <label class="cursor-pointer">
+                        <label class="cursor-pointer block">
                             <input type="checkbox" name="goals" value="{{ g.id }}" checked class="sr-only peer chip-checkbox">
-                            <span class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition shadow-sm">
-                                ✓ {{ g.description }}
-                            </span>
+                            <div class="p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 peer-checked:bg-blue-50/80 peer-checked:border-blue-500 peer-checked:text-blue-950 transition shadow-sm space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 peer-checked:bg-blue-200/80 peer-checked:text-blue-900">
+                                        {{ g.get_domain_display }}
+                                    </span>
+                                    <span class="text-[11px] text-slate-400 font-semibold peer-checked:text-blue-600">✓ დამუშავდა</span>
+                                </div>
+                                <div class="text-xs font-bold text-slate-800 leading-snug">
+                                    {{ g.description }}
+                                </div>
+                                <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                                    <div class="text-[10px] text-slate-500">
+                                        სამიზნე: <strong class="text-emerald-700">{{ g.target_numeric|floatformat:0 }}{{ g.unit_label }}</strong>
+                                        (მიმდინარე: {{ g.current_numeric|floatformat:0 }}{{ g.unit_label }})
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <span class="text-[10px] font-bold text-slate-500">დღეს:</span>
+                                        <input type="number" step="any" name="goal_value_{{ g.id }}" value="{{ g.current_numeric|floatformat:0 }}"
+                                               class="w-16 p-1 rounded-lg border border-slate-300 text-xs font-bold text-center bg-white"
+                                               onclick="event.stopPropagation()">
+                                        <span class="text-[10px] font-bold text-slate-500">{{ g.unit_label }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </label>
                         {% endif %}
-                        {% empty %}
-                        <div class="text-xs text-slate-400 py-1">ამ ბენეფიციარს აქტიური მიზნები ჯერ არ აქვს დამატებული.</div>
                         {% endfor %}
                     </div>
+                    {% else %}
+                    <div class="text-xs text-slate-400 py-1">ამ ბენეფიციარს აქტიური მიზნები ჯერ არ აქვს დამატებული.</div>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- 3 Sensory Category Cards -->
-            <div class="space-y-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                    9 სენსორული სისტემა (3 ძირითადი კატეგორია):
-                </span>
+            <!-- 8 Clinical Domains Header & Search/Expand Controls -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+                        2.2. თერაპიული ინტერვენციის კატეგორიები (მონიშვნისას იშლება შესაბამისი შეფასების პანელი):
+                    </span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="activity-search" oninput="filterActivities(this.value)"
+                           placeholder="🔍 აქტივობის სწრაფი ძიება..."
+                           class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none w-48 sm:w-56">
+                    <button type="button" onclick="expandAllCategories(true)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 hover:bg-slate-50">
+                        ყველას გაშლა
+                    </button>
+                </div>
+            </div>
 
-                <!-- Category 1: Movement & Body -->
-                <div class="bg-white rounded-2xl border border-indigo-100 shadow-sm overflow-hidden">
-                    <button type="button" onclick="toggleCategory('cat-movement')"
-                            class="w-full p-4 bg-indigo-50/60 hover:bg-indigo-50 text-left flex items-center justify-between transition">
-                        <div class="flex items-center space-x-2.5">
+            <!-- 8 Structured Clinical Domain Accordions -->
+            <div class="space-y-3" id="clinical-domains-list">
+                {% for sys in clinical_systems %}
+                <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden domain-card" data-domain-id="{{ sys.id }}">
+                    <!-- Accordion Header -->
+                    <button type="button" onclick="toggleCategory('domain-{{ sys.id }}')"
+                            class="w-full p-4 bg-slate-50/80 hover:bg-slate-100/70 text-left flex items-center justify-between transition border-b border-slate-100">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xl">{{ sys.icon|default:"🔹" }}</span>
                             <div>
-                                <h3 class="text-xs font-black uppercase text-indigo-900 tracking-wide">მოძრაობა და სხეული</h3>
-                                <p class="text-[11px] text-indigo-700/80">პროპრიოცეპტული, ვესტიბულარული, ინტერცეპცია</p>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-xs sm:text-sm font-black text-slate-900">{{ sys.name }}</h3>
+                                    <span id="domain-count-{{ sys.id }}" class="hidden px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-600 text-white">0 არჩეული</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-0.5">{{ sys.description }}</p>
                             </div>
                         </div>
-                        <span id="cat-movement-arrow" class="text-indigo-500 text-xs font-bold">▼</span>
+                        <span id="domain-{{ sys.id }}-arrow" class="text-slate-400 text-xs font-bold ml-2">{% if forloop.counter <= 2 %}▼{% else %}▶{% endif %}</span>
                     </button>
 
-                    <div id="cat-movement" class="p-4 space-y-4">
-                        {% for sys in movement_systems %}
-                        <div class="space-y-2">
-                            <div class="text-xs font-bold text-slate-800 flex items-center">
-                                {{ sys.name }}
+                    <!-- Activities List inside Domain -->
+                    <div id="domain-{{ sys.id }}" class="p-3.5 sm:p-4 space-y-2.5 {% if forloop.counter > 2 %}hidden{% endif %}">
+                        {% for act in sys.activities.all %}
+                        <div class="activity-item rounded-2xl border border-slate-200 bg-slate-50/40 hover:bg-white transition overflow-hidden"
+                             id="act-card-{{ act.id }}"
+                             data-act-name="{{ act.name|lower }} {{ act.description|lower }}">
+                            
+                            <!-- Activity Checkbox Header -->
+                            <div class="p-3 flex items-start sm:items-center justify-between gap-2">
+                                <label class="flex items-start space-x-3 cursor-pointer flex-1">
+                                    <input type="checkbox" name="activities" value="{{ act.id }}"
+                                           data-act-title="{{ act.name }}"
+                                           data-sys-title="{{ sys.name }}"
+                                           data-domain-id="{{ sys.id }}"
+                                           onchange="toggleSmartPanel(this, '{{ act.id }}', '{{ sys.id }}')"
+                                           class="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 activity-checkbox">
+                                    <div>
+                                        <div class="text-xs font-bold text-slate-900">{{ act.name }}</div>
+                                        {% if act.description %}
+                                        <div class="text-[11px] text-slate-500 mt-0.5">{{ act.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-semibold shrink-0 hidden sm:inline-block">
+                                    {{ sys.get_evaluation_schema_display|truncatechars:28 }}
+                                </span>
                             </div>
-                            <div class="space-y-2">
-                                {% for act in sys.activities.all %}
-                                <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white transition flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <label class="flex items-center space-x-2.5 cursor-pointer">
-                                        <input type="checkbox" name="activities" value="{{ act.id }}"
-                                               onchange="document.getElementById('assist_{{ act.id }}').classList.toggle('hidden', !this.checked)"
-                                               class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
-                                        <span class="text-xs font-bold text-slate-800">{{ act.name }}</span>
-                                    </label>
 
-                                    <!-- Assistance Level (Independent / Verbal / Physical) -->
-                                    <div id="assist_{{ act.id }}" class="hidden flex items-center space-x-1 pl-6 sm:pl-0">
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="independent" class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition">დამოუკიდებ.</span>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="verbal" checked class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition">მინიშნებით</span>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="maximal" class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition">ფიზიკური</span>
-                                        </label>
+                            <!-- ==================== SMART CONTEXTUAL EVALUATION PANEL ==================== -->
+                            <div id="smart_panel_{{ act.id }}" class="hidden px-3.5 pb-3.5 pt-2.5 bg-blue-50/30 border-t border-blue-100 space-y-3">
+                                
+                                {% if sys.evaluation_schema == 'vestibular' %}
+                                <!-- SCHEMA 1: VESTIBULAR & POSTURAL -->
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1">მოძრაობის ვექტორი / ტრაექტორია:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            {% for v in "წინ-უკან (სწორხაზოვანი),გვერდითი (ლატერალური),ვერტიკალური (ზემოთ-ქვემოთ),როტაციული (წრიული),მულტი-მიმართულებითი"|make_list %}{% endfor %}
+                                            <label class="cursor-pointer"><input type="radio" name="act_vector_{{ act.id }}" value="წინ-უკან (სწორხაზოვანი)" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">↔ წინ-უკან (სწორხაზოვანი)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_vector_{{ act.id }}" value="გვერდითი (ლატერალური)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">⇄ გვერდითი (ლატერალური)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_vector_{{ act.id }}" value="ვერტიკალური (ზემოთ-ქვემოთ)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">↕ ვერტიკალური</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_vector_{{ act.id }}" value="როტაციული (წრიული)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">↻ როტაციული (წრიული)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_vector_{{ act.id }}" value="მულტი-მიმართულებითი" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">✥ მულტი-მიმართულებითი</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1">ტემპი და რიტმი:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_tempo_{{ act.id }}" value="ნელი და რიტმული (დამამშვიდებელი)" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">ნელი და რიტმული (ინჰიბიციური)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_tempo_{{ act.id }}" value="ზომიერი ტემპი" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">ზომიერი ტემპი</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_tempo_{{ act.id }}" value="ცვალებადი / სწრაფი (მასტიმულირებელი)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">ცვალებადი / სწრაფი (მასტიმულირებელი)</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1">ბავშვის ვესტიბულარულ-პოსტურალური რეაქცია:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_reaction_{{ act.id }}" value="ადაპტური რეაქცია / სიამოვნებით ჩაერთო" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">✓ ადაპტური / სიამოვნებით იღებს</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_reaction_{{ act.id }}" value="სენსორული ძიება (ითხოვს მეტ ინტენსივობას/გამეორებას)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">⚡ ვესტიბულარული ძიება (ითხოვს მეტ სიჩქარეს/ბრუნვას)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_reaction_{{ act.id }}" value="ჰიპერმგრძნობელობა / სენსორული დაცვითობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">⚠️ გრავიტაციული დაუცველობა / შიში</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_reaction_{{ act.id }}" value="გაუმჯობესდა პოსტურალური კონტროლი და ტონუსი" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">🎯 გაუმჯობესდა პოსტურალური ტონუსი/ბალანსი</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_reaction_{{ act.id }}" value="გამოვლინდა სენსორული გადატვირთვა / დისტრესი" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-700 peer-checked:text-white peer-checked:border-rose-700 transition inline-block">🛑 ვეგეტატიური დისკომფორტი (თავბრუსხვევა/გადატვირთვა)</span></label>
+                                        </div>
                                     </div>
                                 </div>
-                                {% endfor %}
+
+                                {% elif sys.evaluation_schema == 'proprioceptive' %}
+                                <!-- SCHEMA 2: PROPRIOCEPTIVE & BODY SCHEME -->
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1">პროპრიოცეპტული დატვირთვის ინტენსივობა:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_intensity_label_{{ act.id }}" value="მსუბუქი დატვირთვა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">მსუბუქი</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_intensity_label_{{ act.id }}" value="ზომიერი დატვირთვა" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">ზომიერი</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_intensity_label_{{ act.id }}" value="მაღალი ინტენსივობის მძიმე სამუშაო" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">💪 მაღალი დატვირთვა (Heavy Work)</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1">ძალის გრადაცია (Force Modulation) და გამძლეობა:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_force_modulation_{{ act.id }}" value="ადეკვატურად ზომავს კუნთოვან ძალას" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">✓ ადეკვატურად ზომავს ძალას</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_force_modulation_{{ act.id }}" value="გადაჭარბებული ძალა / იმპულსური მოძრაობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">⚡ გადაჭარბებული ძალა (უხეში/იმპულსური)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_force_modulation_{{ act.id }}" value="სუსტი ძალისხმევა / დაბალი კუნთოვანი გამძლეობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">🔋 სუსტი ძალისხმევა / მალე იღლება</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1">რეგულაციური შედეგი:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_reg_effect_{{ act.id }}" value="გაუმჯობესდა თვითრეგულაცია და დამშვიდდა" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">🌿 შემცირდა მოუსვენრობა / დამშვიდდა</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_reg_effect_{{ act.id }}" value="გაუმჯობესდა პოსტურალური კონტროლი და ტონუსი" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">🧍 გაიზარდა სხეულის ცნობიერება (Body Scheme)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_reg_effect_{{ act.id }}" value="გაიზარდა ყურადღების კონცენტრაცია და ჩართულობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">🎯 მომზადდა მაგიდის/ფოკუსირებული აქტივობისთვის</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_reg_effect_{{ act.id }}" value="სენსორული ძიება (ითხოვს მეტ ინტენსივობას/გამეორებას)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">🔄 საჭიროებს მუდმივ პროპრიოცეპტულ შევსებას</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% elif sys.evaluation_schema == 'tactile' %}
+                                <!-- SCHEMA 3: TACTILE & HAPTIC -->
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-teal-800 mb-1">სტიმულთან კონტაქტის ფორმა:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_contact_form_{{ act.id }}" value="უშუალოდ მთელი მტევნით/თითებით" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">🖐️ უშუალოდ მთელი მტევნით/თითებით</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_contact_form_{{ act.id }}" value="მხოლოდ თითის წვერებით (ფრთხილად)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">🤏 მხოლოდ თითის წვერებით (ფრთხილად)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_contact_form_{{ act.id }}" value="დამხმარე ხელსაწყოთი (კოვზი/ფუნჯი/მაშა)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">🥄 მხოლოდ ხელსაწყოთი (კოვზი/ფუნჯი/მაშა)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_contact_form_{{ act.id }}" value="ტერფებით / მთელი სხეულით" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">🦶 ტერფებით / სხეულით</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-teal-800 mb-1">ტაქტილური ტოლერანტობა და დისკრიმინაცია:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_tactile_response_{{ act.id }}" value="ადაპტური რეაქცია / სიამოვნებით ჩაერთო" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">✓ ტოლერანტული / კვლევითი ინტერესი</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_tactile_response_{{ act.id }}" value="ეტაპობრივი დესენსიტიზაცია / გაიზარდა ტოლერანტობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">📈 ეტაპობრივად შეეგუა (დესენსიტიზაცია)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_tactile_response_{{ act.id }}" value="ჰიპერმგრძნობელობა / სენსორული დაცვითობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">⚠️ ტაქტილური დაცვითობა (სწრაფად იწმენდს ხელს)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_tactile_response_{{ act.id }}" value="თავის არიდება / კატეგორიული უარი" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">✕ კატეგორიული უარი / ავერსია</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_tactile_response_{{ act.id }}" value="სენსორული ძიება (ითხოვს მეტ ინტენსივობას/გამეორებას)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-600 transition inline-block">⚡ ტაქტილური ძიება (იზელს / პირში იდებს)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_tactile_response_{{ act.id }}" value="ზუსტი სტერეოგნოზია / ჰაპტიკური ამოცნობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">🔍 ზუსტი ჰაპტიკური ამოცნობა (სტერეოგნოზია)</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% elif sys.evaluation_schema == 'sensory_perception' %}
+                                <!-- SCHEMA 4: AUDITORY, VISUAL & ORO-MOTOR -->
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-teal-800 mb-1">სენსორული მოდულაცია და პასუხი:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_perception_response_{{ act.id }}" value="ადაპტური რეაქცია / სიამოვნებით ჩაერთო" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">✓ ადეკვატური ორიენტაცია და ჩართულობა</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_perception_response_{{ act.id }}" value="გაიზარდა ყურადღების კონცენტრაცია და ჩართულობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">👁️ გაუმჯობესდა ვიზუალური ფიქსაცია / სუნთქვის კონტროლი</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_perception_response_{{ act.id }}" value="ეტაპობრივი დესენსიტიზაცია / გაიზარდა ტოლერანტობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">📈 ეტაპობრივი შეგუება (შეხება → დაყნოსვა → გასინჯვა)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_perception_response_{{ act.id }}" value="ჰიპერმგრძნობელობა / სენსორული დაცვითობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">⚠️ ჰიპერმგრძნობელობა (ყურებზე ხელის აფარება / თვალის არიდება)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_perception_response_{{ act.id }}" value="ჰიპორეაქტიულობა (საჭიროებს ძლიერ სტიმულს)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">🔔 ჰიპორეაქტიული (საჭიროებს ძლიერ სიგნალს)</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-teal-800 mb-1">მხარდაჭერის დონე:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="independent" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">დამოუკიდებლად</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="environmental" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">გარემოს ადაპტაციით</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="verbal" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">ვერბალური მინიშნებით</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="gestural_modeling" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">მოდელირებით (ჩვენებით)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="moderate" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">ფიზიკური დახმარებით</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% elif sys.evaluation_schema == 'praxis_gross' %}
+                                <!-- SCHEMA 5: PRAXIS, GROSS MOTOR & BILATERAL INTEGRATION -->
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-blue-800 mb-1">პრაქსისის ფაზა (სად ვლინდება საჭიროება / აქცენტი):</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_praxis_stage_{{ act.id }}" value="სრული ციკლი (იდეაცია → დაგეგმვა → შესრულება)" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">✓ სრული ციკლი (იდეაცია → დაგეგმვა → შესრულება)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_praxis_stage_{{ act.id }}" value="იდეაცია (სჭირდება მოქმედების იდეის მიწოდება)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">💡 იდეაცია (უჭირს იდეის მოფიქრება)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_praxis_stage_{{ act.id }}" value="მოტორული დაგეგმვა (სხეულის პოზიციონირება)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">🧭 მოტორული დაგეგმვა (სხეულის მორგება)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_praxis_stage_{{ act.id }}" value="სექვენსირება (ნაბიჯების თანმიმდევრობის დაცვა)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">🔢 სექვენსირება (რიგითობის დაცვა)</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-blue-800 mb-1">დახმარების დონე (Prompt Hierarchy):</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="independent" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">დამოუკიდებლად</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="verbal" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">ვერბალური ინსტრუქციით</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="gestural_modeling" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">ვიზუალური მოდელირებით (ჩვენებით)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="minimal" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">მცირე ფიზიკური დახმარებით</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="maximal" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">ფიზიკური მართვით</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-blue-800 mb-1">მოძრაობის ხარისხი და კოორდინაცია:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_motor_quality_{{ act.id }}" value="კოორდინირებული და გლუვი შესრულება" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">კოორდინირებული და გლუვი</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_motor_quality_{{ act.id }}" value="დისპრაქსიული / მოუქნელი მოძრაობა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">მოუქნელი / უჭირს რიტმის დაჭერა</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_motor_quality_{{ act.id }}" value="ერიდება სხეულის შუა ხაზის გადაკვეთას" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">ერიდება შუა ხაზის გადაკვეთას</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_motor_quality_{{ act.id }}" value="საჭიროებს პოსტურალურ სტაბილიზაციას" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-purple-600 transition inline-block">მალე ეცემა პოსტურალური ტონუსი</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% elif sys.evaluation_schema == 'fine_motor' %}
+                                <!-- SCHEMA 6: FINE MOTOR, MANIPULATION & GRAPHOMOTOR -->
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-blue-800 mb-1">ჩაჭიდებისა და მანიპულაციის ხარისხი:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_grasp_type_{{ act.id }}" value="ფუნქციური პინცეტური / სამთითა (Tripod) ჩაჭიდება" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">✓ ფუნქციური სამთითა (Tripod) / პინცეტური</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_grasp_type_{{ act.id }}" value="გარდამავალი / არამწიფე ჩაჭიდება" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">გარდამავალი / არამწიფე ჩაჭიდება</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_grasp_type_{{ act.id }}" value="მუშტისებრი (Palmar) / სუსტი მტევნის ტონუსი" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">მუშტისებრი (Palmar) / სუსტი ტონუსი</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_grasp_type_{{ act.id }}" value="ადაპტირებული დამჭერის/ხელსაწყოს გამოყენებით" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">🛠️ ადაპტირებული დამჭერით/მაკრატლით</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-blue-800 mb-1">დახმარების დონე:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="independent" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">დამოუკიდებლად</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="verbal" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">ვერბალური კორექციით</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="gestural_modeling" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">ვიზუალური ნიმუშით / წერტილოვანი ორიენტირით</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="moderate" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">ნაწილობრივი ფიზიკური (მტევნის სტაბილიზაცია)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="maximal" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">ხელი-ხელზე (Hand-over-hand)</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-blue-800 mb-1">ვიზუალურ-მოტორული სიზუსტე:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_accuracy_{{ act.id }}" value="მაღალი სიზუსტე (იცავს კონტურს/საზღვრებს)" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">🎯 მაღალი სიზუსტე (იცავს საზღვრებს)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_accuracy_{{ act.id }}" value="საშუალო სიზუსტე (ნაწილობრივ სცდება კონტურს)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">საშუალო (ნაწილობრივ სცდება ხაზს)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_accuracy_{{ act.id }}" value="დაბალი სიზუსტე (უჭირს ვიზუალური კონტროლი)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">უჭირს თვალ-ხელის კოორდინაცია</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% elif sys.evaluation_schema == 'adl_play' %}
+                                <!-- SCHEMA 7: ADL, SELF-CARE, PLAY & EXECUTIVE -->
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-amber-900 mb-1">აქტივობის ინიცირება:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_initiation_{{ act.id }}" value="თვითონ იწყებს (დამოუკიდებელი ინიციატივით)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">🚀 თვითონ იწყებს</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_initiation_{{ act.id }}" value="ვიზუალური/ვერბალური მინიშნებით იწყებს" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">💬 მინიშნების შემდეგ იწყებს</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_initiation_{{ act.id }}" value="საჭიროებს ფიზიკურ ბიძგს / მოდელირებას დასაწყებად" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">🤝 საჭიროებს დახმარებას დასაწყებად</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-amber-900 mb-1">დამოუკიდებლობის 6-საფეხურიანი კიბე (OT Prompt Hierarchy):</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="independent" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">1. დამოუკიდებელი (100%)</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="environmental" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">2. გარემოს ადაპტაცია / ვიზუალური სქემა</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="verbal" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">3. ვერბალური მითითება</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="gestural_modeling" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">4. ჟესტური მინიშნება / მოდელირება</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="moderate" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">5. ნაწილობრივი ფიზიკური დახმარება</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_assistance_{{ act.id }}" value="full" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">6. სრული ფიზიკური დახმარება</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% elif sys.evaluation_schema == 'interoception' %}
+                                <!-- SCHEMA 8: INTEROCEPTION & SELF-REGULATION -->
+                                <div class="space-y-2">
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-purple-900 mb-1">სხეულის სიგნალის / ემოციის გაცნობიერება:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_awareness_{{ act.id }}" value="დამოუკიდებლად გამოხატა და დაასახელა" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition inline-block">✓ დამოუკიდებლად გამოხატა/დაასახელა</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_awareness_{{ act.id }}" value="თერაპევტის კითხვის/მინიშნების შემდეგ ამოიცნო" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition inline-block">💬 თერაპევტის მინიშნებით ამოიცნო</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_awareness_{{ act.id }}" value="მხოლოდ თერაპევტმა შეამჩნია გარეგანი ნიშნებით" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition inline-block">👀 მხოლოდ თერაპევტმა დააფიქსირა</span></label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] font-black uppercase tracking-wider text-purple-900 mb-1">თვითრეგულაციის სტრატეგიის გამოყენება:</span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <label class="cursor-pointer"><input type="radio" name="act_strategy_{{ act.id }}" value="დამოუკიდებლად აირჩია და გამოიყენა დამამშვიდებელი სტრატეგია" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-teal-600 peer-checked:text-white peer-checked:border-teal-600 transition inline-block">🧘 დამოუკიდებლად გამოიყენა სტრატეგია</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_strategy_{{ act.id }}" value="თერაპევტის კო-რეგულაციით დამშვიდდა" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">🤝 თერაპევტის კო-რეგულაციით</span></label>
+                                            <label class="cursor-pointer"><input type="radio" name="act_strategy_{{ act.id }}" value="გაუჭირდა სტრატეგიის გამოყენება" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition inline-block">⚠️ გაუჭირდა დამშვიდება</span></label>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Common Bottom Row for Every Checked Activity: Duration + Specific Micro-Note -->
+                                <div class="pt-2 border-t border-blue-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div class="flex items-center space-x-1.5">
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase">დრო:</span>
+                                        <select name="act_duration_{{ act.id }}" class="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700">
+                                            <option value="5">5 წთ</option>
+                                            <option value="10" selected>10 წთ</option>
+                                            <option value="15">15 წთ</option>
+                                            <option value="20">20 წთ</option>
+                                            <option value="25">25 წთ</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex-1">
+                                        <input type="text" name="act_note_{{ act.id }}"
+                                               placeholder="კონკრეტული დეტალი (მაგ: გაჭრა 10 სმ ხაზი, გაიმეორა 4-ჯერ...)"
+                                               class="w-full px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs text-slate-800 focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
-
-                <!-- Category 2: Tactile & Sensation -->
-                <div class="bg-white rounded-2xl border border-teal-100 shadow-sm overflow-hidden">
-                    <button type="button" onclick="toggleCategory('cat-tactile')"
-                            class="w-full p-4 bg-teal-50/60 hover:bg-teal-50 text-left flex items-center justify-between transition">
-                        <div class="flex items-center space-x-2.5">
-                            <div>
-                                <h3 class="text-xs font-black uppercase text-teal-900 tracking-wide">შეხება და შეგრძნება</h3>
-                                <p class="text-[11px] text-teal-700/80">ტაქტილური, გემოვნებითი, ყნოსვითი</p>
-                            </div>
-                        </div>
-                        <span id="cat-tactile-arrow" class="text-teal-500 text-xs font-bold">▼</span>
-                    </button>
-
-                    <div id="cat-tactile" class="p-4 space-y-4">
-                        {% for sys in tactile_systems %}
-                        <div class="space-y-2">
-                            <div class="text-xs font-bold text-slate-800 flex items-center">
-                                {{ sys.name }}
-                            </div>
-                            <div class="space-y-2">
-                                {% for act in sys.activities.all %}
-                                <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white transition flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <label class="flex items-center space-x-2.5 cursor-pointer">
-                                        <input type="checkbox" name="activities" value="{{ act.id }}"
-                                               onchange="document.getElementById('assist_{{ act.id }}').classList.toggle('hidden', !this.checked)"
-                                               class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
-                                        <span class="text-xs font-bold text-slate-800">{{ act.name }}</span>
-                                    </label>
-
-                                    <!-- Assistance Level -->
-                                    <div id="assist_{{ act.id }}" class="hidden flex items-center space-x-1 pl-6 sm:pl-0">
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="independent" class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition">დამოუკიდებ.</span>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="verbal" checked class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition">მინიშნებით</span>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="maximal" class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition">ფიზიკური</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Category 3: Environment & Perception -->
-                <div class="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
-                    <button type="button" onclick="toggleCategory('cat-environment')"
-                            class="w-full p-4 bg-amber-50/60 hover:bg-amber-50 text-left flex items-center justify-between transition">
-                        <div class="flex items-center space-x-2.5">
-                            <div>
-                                <h3 class="text-xs font-black uppercase text-amber-900 tracking-wide">გარემო და აღქმა</h3>
-                                <p class="text-[11px] text-amber-700/80">მხედველობითი, სმენითი, მულტისენსორული</p>
-                            </div>
-                        </div>
-                        <span id="cat-environment-arrow" class="text-amber-500 text-xs font-bold">▼</span>
-                    </button>
-
-                    <div id="cat-environment" class="p-4 space-y-4">
-                        {% for sys in environment_systems %}
-                        <div class="space-y-2">
-                            <div class="text-xs font-bold text-slate-800 flex items-center">
-                                {{ sys.name }}
-                            </div>
-                            <div class="space-y-2">
-                                {% for act in sys.activities.all %}
-                                <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white transition flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <label class="flex items-center space-x-2.5 cursor-pointer">
-                                        <input type="checkbox" name="activities" value="{{ act.id }}"
-                                               onchange="document.getElementById('assist_{{ act.id }}').classList.toggle('hidden', !this.checked)"
-                                               class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
-                                        <span class="text-xs font-bold text-slate-800">{{ act.name }}</span>
-                                    </label>
-
-                                    <!-- Assistance Level -->
-                                    <div id="assist_{{ act.id }}" class="hidden flex items-center space-x-1 pl-6 sm:pl-0">
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="independent" class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition">დამოუკიდებ.</span>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="verbal" checked class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition">მინიშნებით</span>
-                                        </label>
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="act_assistance_{{ act.id }}" value="maximal" class="sr-only peer">
-                                            <span class="px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-200 text-slate-600 bg-white peer-checked:bg-amber-600 peer-checked:text-white peer-checked:border-amber-600 transition">ფიზიკური</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
+                {% endfor %}
             </div>
 
             <div class="flex items-center justify-between gap-2 pt-3">
@@ -326,50 +543,50 @@
                 </button>
                 <button type="button" onclick="goToStep(3)"
                         class="flex-1 sm:flex-initial px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition flex items-center justify-center">
-                    <span>შემდეგი: შედეგი</span>
+                    <span>შემდეგი: შედეგი და კლინიკური ჩანაწერი</span>
                     <span class="ml-1.5 text-sm">→</span>
                 </button>
             </div>
         </div>
 
-        <!-- ==================== STEP 3: OUTCOME & CHALLENGES ==================== -->
+        <!-- ==================== STEP 3: OUTCOME, CHALLENGES & SMART NOTE BUILDER ==================== -->
         <div id="wizard-step-3" class="space-y-4 hidden">
             
-            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
+            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm space-y-5">
                 
-                <!-- Final Alert Program Zone -->
+                <!-- 3.1 Final Alert Program Zone -->
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                        საბოლოო რეგულაციის მდგომარეობა (სესიის ბოლოს):
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2.5">
+                        3.1. საბოლოო რეგულაციის მდგომარეობა (სესიის დასრულებისას):
                     </label>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                         <label class="cursor-pointer">
-                            <input type="radio" name="final_state" value="blue" class="sr-only peer">
-                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-blue-50/50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition shadow-sm">
+                            <input type="radio" name="final_state" value="blue" data-label="ლურჯი ზონა (დაბალი ენერგია / დაღლილი)" class="sr-only peer">
+                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-blue-50/50 peer-checked:border-blue-500 peer-checked:bg-blue-50 transition shadow-sm h-full">
                                 <div class="w-6 h-6 rounded-full bg-blue-500 mx-auto mb-2 shadow-sm"></div>
                                 <div class="text-xs font-bold text-slate-800">ლურჯი ზონა</div>
                                 <div class="text-[10px] text-slate-500 mt-0.5">დაბალი ენერგია / დაღლილი</div>
                             </div>
                         </label>
                         <label class="cursor-pointer">
-                            <input type="radio" name="final_state" value="green" checked class="sr-only peer">
-                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-emerald-50/50 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition shadow-sm">
+                            <input type="radio" name="final_state" value="green" data-label="მწვანე ზონა (ოპტიმალური / რეგულირებული)" checked class="sr-only peer">
+                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-emerald-50/50 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition shadow-sm h-full">
                                 <div class="w-6 h-6 rounded-full bg-emerald-500 mx-auto mb-2 shadow-sm"></div>
                                 <div class="text-xs font-bold text-slate-800">მწვანე ზონა</div>
                                 <div class="text-[10px] text-slate-500 mt-0.5">ოპტიმალური / რეგულირებული</div>
                             </div>
                         </label>
                         <label class="cursor-pointer">
-                            <input type="radio" name="final_state" value="yellow" class="sr-only peer">
-                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-amber-50/50 peer-checked:border-amber-500 peer-checked:bg-amber-50 transition shadow-sm">
+                            <input type="radio" name="final_state" value="yellow" data-label="ყვითელი ზონა (მომატებული / აღგზნებული)" class="sr-only peer">
+                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-amber-50/50 peer-checked:border-amber-500 peer-checked:bg-amber-50 transition shadow-sm h-full">
                                 <div class="w-6 h-6 rounded-full bg-amber-500 mx-auto mb-2 shadow-sm"></div>
                                 <div class="text-xs font-bold text-slate-800">ყვითელი ზონა</div>
                                 <div class="text-[10px] text-slate-500 mt-0.5">მომატებული / აღგზნებული</div>
                             </div>
                         </label>
                         <label class="cursor-pointer">
-                            <input type="radio" name="final_state" value="red" class="sr-only peer">
-                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-rose-50/50 peer-checked:border-rose-500 peer-checked:bg-rose-50 transition shadow-sm">
+                            <input type="radio" name="final_state" value="red" data-label="წითელი ზონა (კრიზისი / დისტრესი)" class="sr-only peer">
+                            <div class="p-3.5 rounded-2xl border-2 border-slate-200 text-center bg-slate-50/50 hover:bg-rose-50/50 peer-checked:border-rose-500 peer-checked:bg-rose-50 transition shadow-sm h-full">
                                 <div class="w-6 h-6 rounded-full bg-rose-500 mx-auto mb-2 shadow-sm"></div>
                                 <div class="text-xs font-bold text-slate-800">წითელი ზონა</div>
                                 <div class="text-[10px] text-slate-500 mt-0.5">კრიზისი / დისტრესი</div>
@@ -378,53 +595,57 @@
                     </div>
                 </div>
 
-                <!-- Challenges Checkboxes -->
-                <div class="pt-3 border-t border-slate-100">
+                <!-- 3.2 Adaptive Responses / Functional Outcomes -->
+                <div class="pt-4 border-t border-slate-100">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                        სესიის გამოწვევები (მონიშნეთ მხოლოდ თუ შეინიშნებოდა):
+                        3.2. მიღწეული ადაპტური პასუხი და ფუნქციური შედეგი (მონიშნეთ):
                     </label>
                     <div class="flex flex-wrap gap-2">
+                        {% for fo in functional_outcomes %}
                         <label class="cursor-pointer">
-                            <input type="checkbox" name="challenges" value="გადასვლების სირთულე" class="sr-only peer chip-checkbox">
-                            <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">
-                                გადასვლების სირთულე
+                            <input type="checkbox" name="functional_outcomes" value="{{ fo.id }}" data-label="{{ fo.name }}" class="sr-only peer outcome-checkbox">
+                            <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-emerald-50 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition shadow-sm">
+                                ✓ {{ fo.name }}
                             </span>
                         </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="challenges" value="ხმაურზე მგრძნობელობა" class="sr-only peer chip-checkbox">
-                            <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">
-                                ხმაურზე მგრძნობელობა
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="challenges" value="მოტორული აღგზნება" class="sr-only peer chip-checkbox">
-                            <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">
-                                მოტორული აღგზნება
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="challenges" value="ყურადღების გაფანტვა" class="sr-only peer chip-checkbox">
-                            <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">
-                                ყურადღების გაფანტვა
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="checkbox" name="challenges" value="დაღლილობა / ენერგიის კლება" class="sr-only peer chip-checkbox">
-                            <span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">
-                                დაღლილობა
-                            </span>
-                        </label>
+                        {% endfor %}
                     </div>
                 </div>
 
-                <!-- Short Optional Note -->
-                <div class="pt-3 border-t border-slate-100">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                        მოკლე ჩანაწერი / მშობლისთვის სათქმელი (სურვილისამებრ):
+                <!-- 3.3 Categorized Clinical Challenges -->
+                <div class="pt-4 border-t border-slate-100 space-y-2.5">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                        3.3. სესიის დროს გამოვლენილი ბარიერები / გამოწვევები (მონიშნეთ მხოლოდ საჭიროებისას):
                     </label>
-                    <input type="text" name="notes"
-                           class="w-full p-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                           placeholder="მაგ: კარგად იმუშავა ჰამაკში, გადასვლა მოხდა შეუფერხებლად...">
+                    <div class="flex flex-wrap gap-2">
+                        <!-- Sensory & Regulatory -->
+                        <label class="cursor-pointer"><input type="checkbox" name="challenges" value="სენსორული გადატვირთვა (Overload)" class="sr-only peer challenge-checkbox"><span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-amber-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">სენსორული გადატვირთვა (Overload)</span></label>
+                        <label class="cursor-pointer"><input type="checkbox" name="challenges" value="მაღალი სენსორული ძიება / მოტორული აღგზნება" class="sr-only peer challenge-checkbox"><span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-amber-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">მაღალი სენსორული ძიება / მოტორული აღგზნება</span></label>
+                        <label class="cursor-pointer"><input type="checkbox" name="challenges" value="აკუსტიკური / ვიზუალური ყურადღების გაფანტვა" class="sr-only peer challenge-checkbox"><span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-amber-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">აკუსტიკური / ვიზუალური გაფანტვა</span></label>
+                        <!-- Behavioral & Executive -->
+                        <label class="cursor-pointer"><input type="checkbox" name="challenges" value="აქტივობებს შორის გადასვლის (Transition) სირთულე" class="sr-only peer challenge-checkbox"><span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-amber-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">გადასვლების (Transition) სირთულე</span></label>
+                        <label class="cursor-pointer"><input type="checkbox" name="challenges" value="დაბალი ფრუსტრაციის ტოლერანტობა (სირთულეზე პროტესტი)" class="sr-only peer challenge-checkbox"><span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-amber-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">დაბალი ფრუსტრაციის ტოლერანტობა</span></label>
+                        <label class="cursor-pointer"><input type="checkbox" name="challenges" value="არასასურველ დავალებაზე თავის არიდება (Avoidance)" class="sr-only peer challenge-checkbox"><span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-amber-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">დავალებაზე თავის არიდება (Avoidance)</span></label>
+                        <!-- Motor & Fatigue -->
+                        <label class="cursor-pointer"><input type="checkbox" name="challenges" value="პოსტურალური დაღლილობა / სუსტი კუნთოვანი გამძლეობა" class="sr-only peer challenge-checkbox"><span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-amber-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">პოსტურალური დაღლილობა / ტონუსის კლება</span></label>
+                        <label class="cursor-pointer"><input type="checkbox" name="challenges" value="ახალი მოტორული ინსტრუქციის დაგეგმვის სირთულე" class="sr-only peer challenge-checkbox"><span class="inline-block px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-amber-50 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition shadow-sm">მოტორული დაგეგმვის სირთულე</span></label>
+                    </div>
+                </div>
+
+                <!-- 3.4 Smart Clinical Note Builder -->
+                <div class="pt-4 border-t border-slate-100 space-y-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            3.4. პროფესიული კლინიკური ჩანაწერი (ავტომატური ფორმირება + რედაქტირება):
+                        </label>
+                        <button type="button" onclick="generateSmartClinicalNote(true)"
+                                class="inline-flex items-center px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition">
+                            ✨ ჩანაწერის ავტო-გენერაცია ჩეკლისტებიდან
+                        </button>
+                    </div>
+                    <textarea name="notes" id="clinical-notes-textarea" rows="4"
+                              class="w-full p-3.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              placeholder="მონიშნული ჩეკლისტების მიხედვით აქ ავტომატურად აიწყობა კლინიკური ჩანაწერი, რომელსაც სურვილისამებრ ჩაასწორებთ..."></textarea>
                 </div>
 
             </div>
@@ -459,7 +680,14 @@
         const line = document.getElementById('wizard-line');
         if (step === 1) line.style.width = '0%';
         if (step === 2) line.style.width = '50%';
-        if (step === 3) line.style.width = '100%';
+        if (step === 3) {
+            line.style.width = '100%';
+            // Auto-generate clinical note if textarea is currently empty
+            const notesArea = document.getElementById('clinical-notes-textarea');
+            if (notesArea && !notesArea.value.trim()) {
+                generateSmartClinicalNote(false);
+            }
+        }
 
         updateStepBtn(1, step >= 1, step === 1);
         updateStepBtn(2, step >= 2, step === 2);
@@ -471,7 +699,7 @@
     function updateStepBtn(num, isPassed, isCurrent) {
         const btn = document.getElementById('step-btn-' + num);
         if (!btn) return;
-        const base = "relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition ";
+        const base = "relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition ";
         if (isCurrent) {
             btn.className = base + "bg-blue-600 text-white shadow-sm";
         } else if (isPassed) {
@@ -488,6 +716,146 @@
             const isHidden = el.classList.toggle('hidden');
             if (arrow) arrow.innerText = isHidden ? '▶' : '▼';
         }
+    }
+
+    function expandAllCategories(expand) {
+        document.querySelectorAll('[id^="domain-"]').forEach(el => {
+            if (el.id.endsWith('-arrow') || el.id.startsWith('domain-count-')) return;
+            el.classList.toggle('hidden', !expand);
+            const arrow = document.getElementById(el.id + '-arrow');
+            if (arrow) arrow.innerText = expand ? '▼' : '▶';
+        });
+    }
+
+    function toggleSmartPanel(checkbox, actId, domainId) {
+        const panel = document.getElementById('smart_panel_' + actId);
+        const card = document.getElementById('act-card-' + actId);
+        if (panel) {
+            panel.classList.toggle('hidden', !checkbox.checked);
+        }
+        if (card) {
+            card.classList.toggle('border-blue-500', checkbox.checked);
+            card.classList.toggle('bg-white', checkbox.checked);
+            card.classList.toggle('shadow-sm', checkbox.checked);
+        }
+        updateSelectionCounters(domainId);
+    }
+
+    function updateSelectionCounters(domainId) {
+        const allChecked = document.querySelectorAll('.activity-checkbox:checked').length;
+        const badge = document.getElementById('selected-act-badge');
+        if (badge) {
+            badge.innerText = allChecked;
+            badge.classList.toggle('hidden', allChecked === 0);
+        }
+        if (domainId) {
+            const domChecked = document.querySelectorAll(`.activity-checkbox[data-domain-id="${domainId}"]:checked`).length;
+            const domBadge = document.getElementById('domain-count-' + domainId);
+            if (domBadge) {
+                domBadge.innerText = domChecked + ' არჩეული';
+                domBadge.classList.toggle('hidden', domChecked === 0);
+            }
+        }
+    }
+
+    function filterActivities(query) {
+        const q = query.trim().toLowerCase();
+        document.querySelectorAll('.domain-card').forEach(domCard => {
+            const domId = domCard.getAttribute('data-domain-id');
+            const container = document.getElementById('domain-' + domId);
+            const arrow = document.getElementById('domain-' + domId + '-arrow');
+            let visibleCount = 0;
+
+            domCard.querySelectorAll('.activity-item').forEach(item => {
+                const text = item.getAttribute('data-act-name') || '';
+                const match = !q || text.includes(q);
+                item.classList.toggle('hidden', !match);
+                if (match) visibleCount++;
+            });
+
+            if (q) {
+                domCard.classList.toggle('hidden', visibleCount === 0);
+                if (visibleCount > 0 && container) {
+                    container.classList.remove('hidden');
+                    if (arrow) arrow.innerText = '▼';
+                }
+            } else {
+                domCard.classList.remove('hidden');
+            }
+        });
+    }
+
+    function generateSmartClinicalNote(overwrite) {
+        const notesArea = document.getElementById('clinical-notes-textarea');
+        if (!notesArea) return;
+        if (!overwrite && notesArea.value.trim()) return;
+
+        const parts = [];
+
+        // 1. Entry & Regulation transition
+        const entryChecked = document.querySelector('input[name="entry_adaptation"]:checked');
+        const initZone = document.querySelector('input[name="initial_state"]:checked');
+        const finalZone = document.querySelector('input[name="final_state"]:checked');
+
+        const entryText = entryChecked ? entryChecked.getAttribute('data-label') : '';
+        const initText = initZone ? initZone.getAttribute('data-label') : '';
+        const finalText = finalZone ? finalZone.getAttribute('data-label') : '';
+
+        if (entryText || initText) {
+            parts.push(`სესიაზე შემოსვლა: ${entryText}. საწყისი რეგულაცია: ${initText} → სესიის ბოლოს: ${finalText}.`);
+        }
+
+        // 2. Checked Activities & Smart Evaluation Parameters
+        const actSummaries = [];
+        document.querySelectorAll('.activity-checkbox:checked').forEach(cb => {
+            const actId = cb.value;
+            const actTitle = cb.getAttribute('data-act-title');
+            const panel = document.getElementById('smart_panel_' + actId);
+            const details = [];
+
+            if (panel) {
+                panel.querySelectorAll('input[type="radio"]:checked').forEach(r => {
+                    const span = r.nextElementSibling;
+                    if (span && span.innerText) {
+                        details.push(span.innerText.replace(/^[✓⚡⚠️🎯🛑💪🔋🌿🧍🔄🖐️🤏🥄🦶📈✕🔍👁️🔔💡🧭🔢🛠️🚀💬🤝🧘👀]+\s*/, '').trim());
+                    }
+                });
+                const noteInput = panel.querySelector(`input[name="act_note_${actId}"]`);
+                if (noteInput && noteInput.value.trim()) {
+                    details.push(noteInput.value.trim());
+                }
+            }
+
+            if (details.length > 0) {
+                actSummaries.push(`${actTitle} (${details.join(', ')})`);
+            } else {
+                actSummaries.push(actTitle);
+            }
+        });
+
+        if (actSummaries.length > 0) {
+            parts.push(`განხორციელებული ინტერვენციები: ${actSummaries.join('; ')}.`);
+        }
+
+        // 3. Adaptive Outcomes
+        const outcomes = [];
+        document.querySelectorAll('.outcome-checkbox:checked').forEach(oc => {
+            outcomes.push(oc.getAttribute('data-label'));
+        });
+        if (outcomes.length > 0) {
+            parts.push(`მიღწეული ადაპტური პასუხი: ${outcomes.join(', ')}.`);
+        }
+
+        // 4. Challenges
+        const challenges = [];
+        document.querySelectorAll('.challenge-checkbox:checked').forEach(ch => {
+            challenges.push(ch.value);
+        });
+        if (challenges.length > 0) {
+            parts.push(`სესიაზე გამოვლენილი საჭიროებები/ბარიერები: ${challenges.join(', ')}.`);
+        }
+
+        notesArea.value = parts.join(' ');
     }
 </script>
 {% endblock %}

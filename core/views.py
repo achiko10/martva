@@ -1,5 +1,6 @@
 import json
 import uuid
+import calendar
 from datetime import date, datetime, timedelta, time
 from collections import Counter
 from django.shortcuts import render, get_object_or_404, redirect
@@ -9,7 +10,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.utils import timezone
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Prefetch, Max
 
 from .models import (
     TherapistProfile, Beneficiary, OccupationalProfile, SensoryProfile,
@@ -21,27 +22,52 @@ from .reports import generate_monthly_report_content
 from .pdf import generate_report_pdf
 
 
+def get_or_create_therapist(user):
+    """Safely returns TherapistProfile for any authenticated user."""
+    if not user or not user.is_authenticated:
+        return None
+    profile, _ = TherapistProfile.objects.get_or_create(user=user)
+    return profile
+
+
+def is_admin_user(user):
+    """Checks whether user has superuser, staff, or admin therapist privileges."""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    profile = get_or_create_therapist(user)
+    return bool(profile and profile.is_admin_role)
+
+
+def add_calendar_months(source_date, months):
+    """Adds `months` calendar months to `source_date` accurately."""
+    month = source_date.month - 1 + months
+    year = source_date.year + month // 12
+    month = month % 12 + 1
+    day = min(source_date.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
 def get_user_beneficiaries(user):
     """Filter beneficiaries based on user role"""
     if not user.is_authenticated:
         return Beneficiary.objects.none()
-    if user.is_superuser or user.is_staff:
+    if is_admin_user(user):
         return Beneficiary.objects.all()
-    profile, _ = TherapistProfile.objects.get_or_create(user=user)
-    if profile.is_admin_role:
-        return Beneficiary.objects.all()
+    profile = get_or_create_therapist(user)
     return Beneficiary.objects.filter(Q(therapist=profile) | Q(therapist__isnull=True))
 
 
 def can_access_beneficiary(user, beneficiary):
     if not user.is_authenticated:
         return False
-    if user.is_superuser or user.is_staff:
+    if is_admin_user(user):
         return True
     if beneficiary.therapist is None:
         return True
-    profile, _ = TherapistProfile.objects.get_or_create(user=user)
-    if profile.is_admin_role or beneficiary.therapist == profile:
+    profile = get_or_create_therapist(user)
+    if beneficiary.therapist == profile:
         return True
     return False
 
@@ -110,8 +136,8 @@ def dashboard_view(request):
 
     recent_sessions = sessions_qs.order_by("-date", "-created_at")[:6]
 
-    profile, _ = TherapistProfile.objects.get_or_create(user=user)
-    if user.is_superuser or user.is_staff or profile.is_admin_role:
+    profile = get_or_create_therapist(user)
+    if is_admin_user(user):
         today_slots = ScheduleSlot.objects.filter(date=today).select_related("beneficiary").order_by("start_time")
     else:
         today_slots = ScheduleSlot.objects.filter(
@@ -151,10 +177,11 @@ def beneficiary_list_view(request):
             Q(first_name__icontains=search_query) | Q(last_name__icontains=search_query)
         )
 
-    if therapist_id and request.user.is_superuser:
+    admin_flag = is_admin_user(request.user)
+    if therapist_id and admin_flag:
         beneficiaries = beneficiaries.filter(therapist_id=therapist_id)
 
-    all_therapists = TherapistProfile.objects.all() if request.user.is_superuser else None
+    all_therapists = TherapistProfile.objects.all() if admin_flag else None
 
     context = {
         "beneficiaries": beneficiaries,
@@ -173,7 +200,7 @@ def beneficiary_create_view(request):
         last_name = request.POST.get("last_name", "").strip()
         dob_str = request.POST.get("date_of_birth", "").strip()
         start_date_str = request.POST.get("start_date", "").strip() or date.today().isoformat()
-        session_duration = int(request.POST.get("session_duration_minutes", 45) or 45)
+        session_duration = int(request.POST.get("session_duration_minutes", 50) or 50)
         weekly_sessions = int(request.POST.get("weekly_sessions_planned", 2) or 2)
         notes = request.POST.get("notes", "").strip()
 
@@ -183,7 +210,7 @@ def beneficiary_create_view(request):
         if therapist_id:
             assigned_therapist = TherapistProfile.objects.filter(id=therapist_id).first()
         if not assigned_therapist:
-            assigned_therapist, _ = TherapistProfile.objects.get_or_create(user=request.user)
+            assigned_therapist = get_or_create_therapist(request.user)
 
         if not first_name or not last_name or not dob_str:
             messages.error(request, "გთხოვთ შეავსოთ სავალდებულო ველები (სახელი, გვარი, დაბადების თარიღი).")
@@ -206,10 +233,7 @@ def beneficiary_create_view(request):
             messages.success(request, f"ბენეფიციარი {b.full_name} წარმატებით დაემატა.")
             return redirect("beneficiary_detail", beneficiary_id=b.id)
 
-    is_admin = request.user.is_superuser or (
-        hasattr(request.user, "therapist_profile") and request.user.therapist_profile.is_admin_role
-    )
-    therapists = TherapistProfile.objects.all() if is_admin else None
+    therapists = TherapistProfile.objects.all() if is_admin_user(request.user) else None
     return render(request, "core/beneficiary_form.html", {
         "therapists": therapists,
         "is_create": True,
@@ -283,7 +307,7 @@ def beneficiary_detail_view(request, beneficiary_id):
                 target_clause = f" — სამიზნე: {target_numeric}{unit_label}" if unit_label else ""
                 description = f"ბენეფიციარი შეძლებს: {occupation}{env_clause}{target_clause}."
 
-            therapist = request.user.therapist_profile if hasattr(request.user, "therapist_profile") else None
+            therapist = get_or_create_therapist(request.user)
             g = Goal.objects.create(
                 beneficiary=beneficiary,
                 therapist=therapist,
@@ -305,7 +329,7 @@ def beneficiary_detail_view(request, beneficiary_id):
             g.progress_percentage = g.calculate_progress_percentage()
             g.save()
 
-            messages.success(request, f"ახალი გაზომვადი SMART მიზანი წარმატებით დაემატა!")
+            messages.success(request, "ახალი გაზომვადი SMART მიზანი წარმატებით დაემატა!")
             return redirect("beneficiary_detail", beneficiary_id=beneficiary.id)
 
         elif action == "update_goal_status":
@@ -341,12 +365,14 @@ def beneficiary_edit_view(request, beneficiary_id):
     if not can_access_beneficiary(request.user, beneficiary):
         return HttpResponseForbidden()
 
+    admin_flag = is_admin_user(request.user)
+
     if request.method == "POST":
         beneficiary.first_name = request.POST.get("first_name", "").strip()
         beneficiary.last_name = request.POST.get("last_name", "").strip()
         dob_str = request.POST.get("date_of_birth", "").strip()
         start_date_str = request.POST.get("start_date", "").strip()
-        beneficiary.session_duration_minutes = int(request.POST.get("session_duration_minutes", 45) or 45)
+        beneficiary.session_duration_minutes = int(request.POST.get("session_duration_minutes", 50) or 50)
         beneficiary.weekly_sessions_planned = int(request.POST.get("weekly_sessions_planned", 2) or 2)
         beneficiary.notes = request.POST.get("notes", "").strip()
         beneficiary.is_active = "is_active" in request.POST
@@ -356,7 +382,7 @@ def beneficiary_edit_view(request, beneficiary_id):
         if start_date_str:
             beneficiary.start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
 
-        if request.user.is_superuser or request.user.therapist_profile.is_admin_role:
+        if admin_flag:
             t_id = request.POST.get("therapist")
             beneficiary.therapist = TherapistProfile.objects.filter(id=t_id).first() if t_id else None
 
@@ -364,7 +390,7 @@ def beneficiary_edit_view(request, beneficiary_id):
         messages.success(request, "მონაცემები განახლდა.")
         return redirect("beneficiary_detail", beneficiary_id=beneficiary.id)
 
-    therapists = TherapistProfile.objects.all() if (request.user.is_superuser or request.user.therapist_profile.is_admin_role) else None
+    therapists = TherapistProfile.objects.all() if admin_flag else None
     return render(request, "core/beneficiary_form.html", {
         "beneficiary": beneficiary,
         "therapists": therapists,
@@ -373,7 +399,7 @@ def beneficiary_edit_view(request, beneficiary_id):
     })
 
 
-# ==================== RAPID SESSION RECORDING (30-60 SEC) ====================
+# ==================== SMART CLINICAL SESSION RECORDING ====================
 
 @login_required
 def session_create_view(request, beneficiary_id=None):
@@ -396,12 +422,13 @@ def session_create_view(request, beneficiary_id=None):
         session_date_str = request.POST.get("date", date.today().isoformat())
         session_date = datetime.strptime(session_date_str, "%Y-%m-%d").date()
         duration = int(request.POST.get("duration_minutes", 50) or 50)
+        entry_adaptation = request.POST.get("entry_adaptation", "calm_organized")
         initial_state = request.POST.get("initial_state", "green")
         final_state = request.POST.get("final_state", "green")
         challenges = request.POST.getlist("challenges")
         notes = request.POST.get("notes", "").strip()
 
-        therapist = request.user.therapist_profile if hasattr(request.user, "therapist_profile") else None
+        therapist = get_or_create_therapist(request.user)
 
         # 1. Create Session
         session = Session.objects.create(
@@ -409,11 +436,17 @@ def session_create_view(request, beneficiary_id=None):
             therapist=therapist,
             date=session_date,
             duration_minutes=duration,
+            entry_adaptation=entry_adaptation,
             initial_state=initial_state,
             final_state=final_state,
             challenges=challenges,
             notes=notes
         )
+
+        # Functional outcomes (Adaptive Response)
+        outcome_ids = request.POST.getlist("functional_outcomes")
+        if outcome_ids:
+            session.functional_outcomes.set(outcome_ids)
 
         if slot_obj:
             slot_obj.session = session
@@ -443,40 +476,83 @@ def session_create_view(request, beneficiary_id=None):
                     progress_value=f"{g_val}{goal_obj.unit_label}" if g_val else ""
                 )
 
-        # 3. Add Sensory Activities with Assistance Levels & Optional Responses
+        # 3. Add Smart Clinical Activities with Context-Specific Evaluation Schemas
         activity_ids = request.POST.getlist("activities")
         for aid in activity_ids:
-            act_obj = SensoryActivity.objects.filter(id=aid).first()
+            act_obj = SensoryActivity.objects.select_related("sensory_system").filter(id=aid).first()
             if not act_obj:
                 continue
+
+            try:
+                act_dur = int(request.POST.get(f"act_duration_{aid}", 10) or 10)
+            except ValueError:
+                act_dur = 10
+
             assistance = request.POST.get(f"act_assistance_{aid}", "verbal")
+            intensity = request.POST.get(f"act_intensity_{aid}", "medium")
+            direction = request.POST.get(f"act_direction_{aid}", "none")
+            speed = request.POST.get(f"act_speed_{aid}", "none")
+            act_start = request.POST.get(f"act_start_{aid}", "cue")
+            interoception = request.POST.get(f"act_interoception_{aid}", "none")
+            act_note = request.POST.get(f"act_note_{aid}", "").strip()
+
+            # Collect smart evaluation parameters
+            eval_keys = [
+                "vector", "tempo", "reaction", "intensity_label", "force_modulation",
+                "reg_effect", "contact_form", "tactile_response", "perception_response",
+                "praxis_stage", "prompt_label", "motor_quality", "grasp_type",
+                "accuracy", "initiation", "awareness", "strategy"
+            ]
+            eval_data = {}
+            for k in eval_keys:
+                val = request.POST.get(f"act_{k}_{aid}", "").strip()
+                if val:
+                    eval_data[k] = val
+
             sa = SessionSensoryActivity.objects.create(
                 session=session,
                 sensory_activity=act_obj,
-                duration_minutes=duration,
+                duration_minutes=act_dur,
+                intensity=intensity,
                 assistance_level=assistance,
+                activity_start=act_start,
+                movement_direction=direction,
+                speed=speed,
+                interoception_mode=interoception,
+                evaluation_data=eval_data,
+                notes=act_note,
             )
 
-            resp_id = request.POST.get(f"act_response_{aid}")
-            if resp_id:
-                r_obj = SensoryResponse.objects.filter(id=resp_id).first()
-                if r_obj:
+            # Map qualitative reaction tags into SensoryResponse records for analytics/reports
+            for resp_key in ["reaction", "tactile_response", "perception_response", "reg_effect"]:
+                resp_text = eval_data.get(resp_key)
+                if resp_text:
+                    r_obj, _ = SensoryResponse.objects.get_or_create(
+                        name=resp_text[:150],
+                        defaults={"is_active": True}
+                    )
                     sa.responses.add(r_obj)
 
         messages.success(request, f"სესია ({target_beneficiary.full_name}, {session.date}) წარმატებით დაფიქსირდა!")
         return redirect("session_detail", session_id=session.id)
 
-    # 3 Sensory Categories
-    movement_systems = SensorySystem.objects.filter(category="movement").prefetch_related("activities").order_by("order")
-    tactile_systems = SensorySystem.objects.filter(category="tactile_sensory").prefetch_related("activities").order_by("order")
-    environment_systems = SensorySystem.objects.filter(category="environment").prefetch_related("activities").order_by("order")
+    active_activities_prefetch = Prefetch(
+        "activities",
+        queryset=SensoryActivity.objects.filter(is_active=True).order_by("id")
+    )
+    clinical_systems = (
+        SensorySystem.objects.filter(order__lte=8)
+        .prefetch_related(active_activities_prefetch)
+        .order_by("order")
+    )
+    functional_outcomes = FunctionalOutcome.objects.filter(is_active=True).order_by("order")
 
     context = {
         "beneficiaries": beneficiaries,
         "selected_beneficiary": selected_beneficiary,
-        "movement_systems": movement_systems,
-        "tactile_systems": tactile_systems,
-        "environment_systems": environment_systems,
+        "clinical_systems": clinical_systems,
+        "functional_outcomes": functional_outcomes,
+        "entry_adaptation_choices": Session.ENTRY_ADAPTATION_CHOICES,
         "initial_state_choices": Session.INITIAL_STATE_CHOICES,
         "final_state_choices": Session.FINAL_STATE_CHOICES,
         "today_date": slot_obj.date.isoformat() if slot_obj else date.today().isoformat(),
@@ -548,22 +624,16 @@ def progress_view(request, beneficiary_id):
             for r in sa.responses.all():
                 response_counts[r.name] += 1
 
-    # 4. Assistance level over time
+    # 4. Assistance level over time (6-8 level OT Prompt Hierarchy mapped 1..6)
     assist_weights = {
         "full": 1,
         "maximal": 2,
         "moderate": 3,
         "minimal": 4,
+        "gestural_modeling": 4.5,
         "verbal": 5,
-        "independent": 6
-    }
-    assist_labels_map = {
-        "full": "სრული",
-        "maximal": "დიდი",
-        "moderate": "საშუალო",
-        "minimal": "მცირე",
-        "verbal": "სიტყვიერი",
-        "independent": "დამოუკიდებელი"
+        "environmental": 5.5,
+        "independent": 6,
     }
 
     timeline_dates = []
@@ -572,16 +642,13 @@ def progress_view(request, beneficiary_id):
 
     for s in sessions:
         timeline_dates.append(s.date.strftime("%d.%m"))
-        # average activity duration in that session
         acts = s.sensory_activities.all()
         avg_act_dur = round(sum(a.duration_minutes for a in acts) / len(acts), 1) if acts else 0
         timeline_durations.append(avg_act_dur)
 
-        # average assistance score
         avg_assist = round(sum(assist_weights.get(a.assistance_level, 3) for a in acts) / len(acts), 1) if acts else 3
         timeline_assist.append(avg_assist)
 
-    # Convert to JSON for Chart.js
     chart_data = {
         "system_labels": list(system_counts.keys()),
         "system_values": list(system_counts.values()),
@@ -617,15 +684,13 @@ def monthly_report_create_view(request, beneficiary_id):
         year = int(request.POST.get("year", today.year))
         month = int(request.POST.get("month", today.month))
 
-        # Check existing
         existing_report = MonthlyReport.objects.filter(beneficiary=beneficiary, year=year, month=month).first()
         if existing_report:
             messages.info(request, f"{year} წლის {existing_report.month_display}-ის ანგარიში უკვე არსებობს. გადამისამართება რედაქტორზე.")
             return redirect("monthly_report_edit", report_id=existing_report.id)
 
-        # Generate fresh content from sessions
         content = generate_monthly_report_content(beneficiary, year, month)
-        therapist = request.user.therapist_profile if hasattr(request.user, "therapist_profile") else beneficiary.therapist
+        therapist = get_or_create_therapist(request.user) or beneficiary.therapist
 
         report = MonthlyReport.objects.create(
             beneficiary=beneficiary,
@@ -635,7 +700,6 @@ def monthly_report_create_view(request, beneficiary_id):
             **content
         )
 
-        # Create initial revision
         ReportRevision.objects.create(
             report=report,
             revised_by=request.user,
@@ -666,7 +730,6 @@ def monthly_report_edit_view(request, report_id):
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "regenerate":
-            # Re-aggregate from current sessions data
             content = generate_monthly_report_content(report.beneficiary, report.year, report.month)
             for k, v in content.items():
                 setattr(report, k, v)
@@ -680,7 +743,6 @@ def monthly_report_edit_view(request, report_id):
             messages.success(request, "ანგარიშის ტექსტი ხელახლა დაგენერირდა სესიების უახლესი მონაცემებიდან.")
             return redirect("monthly_report_edit", report_id=report.id)
 
-        # Save edits
         report.title = request.POST.get("title", report.title).strip()
         report.section_1_directions = request.POST.get("section_1_directions", "").strip()
         report.section_2_goals = request.POST.get("section_2_goals", "").strip()
@@ -704,7 +766,6 @@ def monthly_report_edit_view(request, report_id):
 
         report.save()
 
-        # Track revision snapshot
         snapshot = {
             "title": report.title,
             "sec1": report.section_1_directions,
@@ -737,10 +798,6 @@ def monthly_report_edit_view(request, report_id):
 
 @login_required
 def monthly_report_view(request, report_id):
-    """
-    Direct interactive web presentation of the clinical report matching
-    the Stitch template. Users can view, zoom, and print directly via browser (window.print()).
-    """
     report = get_object_or_404(MonthlyReport, id=report_id)
     if not can_access_beneficiary(request.user, report.beneficiary):
         return HttpResponseForbidden()
@@ -842,20 +899,12 @@ def monthly_report_pdf_view(request, report_id):
         except Exception:
             pass
 
-    # On cloud environments without headless Chrome (e.g. PythonAnywhere free tier),
-    # redirect to the pixel-perfect HTML print layout with automated browser print
     from django.urls import reverse
     return redirect(reverse("monthly_report_view", args=[report.id]) + "?autoprint=1")
 
 
 @login_required
 def goal_detail_view(request, goal_id):
-    """
-    Dedicated interactive workspace for a single SMART Goal:
-    - Live progress bar & metric gauges
-    - Chronological history of sessions addressing this goal
-    - Manual progress update, status change, and modification
-    """
     goal = get_object_or_404(Goal, id=goal_id)
     if not can_access_beneficiary(request.user, goal.beneficiary):
         return HttpResponseForbidden("თქვენ არ გაქვთ ამ მიზნის ნახვის უფლება.")
@@ -879,6 +928,9 @@ def goal_detail_view(request, goal_id):
                 messages.success(request, f"სტატუსი შეიცვალა: {goal.get_status_display()}")
 
         elif action == "modify_goal":
+            domain = request.POST.get("domain", "").strip()
+            if domain and domain in dict(Goal.DOMAIN_CHOICES):
+                goal.domain = domain
             goal.occupation = request.POST.get("occupation", "").strip()
             goal.environment_context = request.POST.get("environment_context", "").strip()
             goal.criteria_type = request.POST.get("criteria_type", "").strip()
@@ -886,9 +938,19 @@ def goal_detail_view(request, goal_id):
                 goal.baseline_numeric = float(request.POST.get("baseline_numeric", goal.baseline_numeric))
                 goal.target_numeric = float(request.POST.get("target_numeric", goal.target_numeric))
                 goal.unit_label = request.POST.get("unit_label", goal.unit_label).strip()
+                goal.baseline_state = f"{goal.baseline_numeric}{goal.unit_label}"
+                goal.target_state = f"{goal.target_numeric}{goal.unit_label}"
             except ValueError:
                 pass
+            target_date_str = request.POST.get("target_date", "").strip()
+            if target_date_str:
+                try:
+                    goal.target_date = datetime.strptime(target_date_str, "%Y-%m-%d").date()
+                except ValueError:
+                    pass
             goal.progress_percentage = goal.calculate_progress_percentage()
+            if goal.progress_percentage >= 100 and goal.status == "active":
+                goal.status = "achieved"
             goal.notes = request.POST.get("notes", "").strip()
             goal.description = request.POST.get("description", goal.description).strip()
             goal.save()
@@ -896,7 +958,6 @@ def goal_detail_view(request, goal_id):
 
         return redirect("goal_detail", goal_id=goal.id)
 
-    # Session history for this goal
     session_goals = SessionGoal.objects.filter(goal=goal).select_related("session").order_by("-session__date")
 
     context = {
@@ -904,6 +965,7 @@ def goal_detail_view(request, goal_id):
         "beneficiary": goal.beneficiary,
         "session_goals": session_goals,
         "status_choices": Goal.STATUS_CHOICES,
+        "domain_choices": Goal.DOMAIN_CHOICES,
     }
     return render(request, "core/goal_detail.html", context)
 
@@ -913,17 +975,38 @@ def goal_detail_view(request, goal_id):
 @login_required
 def schedule_view(request):
     user = request.user
-    profile, _ = TherapistProfile.objects.get_or_create(user=user)
-    
-    try:
-        week_offset = int(request.GET.get("week_offset", 0))
-    except ValueError:
-        week_offset = 0
-
+    profile = get_or_create_therapist(user)
     today = date.today()
-    base_date = today + timedelta(weeks=week_offset)
-    start_of_week = base_date - timedelta(days=base_date.weekday())
-    
+    today_monday = today - timedelta(days=today.weekday())
+
+    # Allow jumping by ?date=YYYY-MM-DD, ?month=YYYY-MM, or ?week_offset=N
+    jump_date_str = request.GET.get("date", "").strip()
+    jump_month_str = request.GET.get("month", "").strip()
+    week_offset = 0
+
+    if jump_date_str:
+        try:
+            target_d = datetime.strptime(jump_date_str, "%Y-%m-%d").date()
+            target_monday = target_d - timedelta(days=target_d.weekday())
+            week_offset = (target_monday - today_monday).days // 7
+        except ValueError:
+            week_offset = 0
+    elif jump_month_str:
+        try:
+            target_d = datetime.strptime(f"{jump_month_str}-01", "%Y-%m-%d").date()
+            target_monday = target_d - timedelta(days=target_d.weekday())
+            week_offset = (target_monday - today_monday).days // 7
+        except ValueError:
+            week_offset = 0
+    else:
+        try:
+            week_offset = int(request.GET.get("week_offset", 0))
+        except ValueError:
+            week_offset = 0
+
+    start_of_week = today_monday + timedelta(weeks=week_offset)
+    end_of_week = start_of_week + timedelta(days=5)
+
     DAYS_GEORGIAN = ["ორშაბათი", "სამშაბათი", "ოთხშაბათი", "ხუთშაბათი", "პარასკევი", "შაბათი"]
     DAYS_SHORT = ["ორშ", "სამ", "ოთხ", "ხუთ", "პარ", "შაბ"]
     MONTH_NAMES = {
@@ -932,28 +1015,72 @@ def schedule_view(request):
         9: "სექტემბერი", 10: "ოქტომბერი", 11: "ნოემბერი", 12: "დეკემბერი"
     }
 
+    if is_admin_user(user):
+        slots = list(
+            ScheduleSlot.objects.filter(date__range=[start_of_week, end_of_week])
+            .select_related("beneficiary", "therapist")
+            .order_by("date", "start_time")
+        )
+    else:
+        slots = list(
+            ScheduleSlot.objects.filter(
+                Q(therapist=profile) | Q(therapist__isnull=True),
+                date__range=[start_of_week, end_of_week]
+            )
+            .select_related("beneficiary", "therapist")
+            .order_by("date", "start_time")
+        )
+
+    # Enrich recurring slots with total count and final date of the series
+    series_ids = {s.series_id for s in slots if s.series_id}
+    series_meta = {}
+    if series_ids:
+        agg = (
+            ScheduleSlot.objects.filter(series_id__in=series_ids)
+            .values("series_id")
+            .annotate(total_count=Count("id"), max_date=Max("date"))
+        )
+        for item in agg:
+            series_meta[item["series_id"]] = {
+                "total": item["total_count"],
+                "max_date_str": item["max_date"].strftime("%d.%m.%Y") if item["max_date"] else "",
+            }
+
+    for s in slots:
+        if s.series_id and s.series_id in series_meta:
+            s.series_total = series_meta[s.series_id]["total"]
+            s.series_end_str = series_meta[s.series_id]["max_date_str"]
+        else:
+            s.series_total = 0
+            s.series_end_str = ""
+
+    # Build week_days and attach day_slots for mobile agenda view
     week_days = []
+    selected_mobile_day_idx = 0
     for i in range(6):
         d = start_of_week + timedelta(days=i)
+        day_slots = [s for s in slots if s.date == d]
+        is_today_flag = (d == today)
+        if is_today_flag:
+            selected_mobile_day_idx = i
         week_days.append({
+            "index": i,
             "date": d,
             "day_name": DAYS_GEORGIAN[i],
             "day_short": DAYS_SHORT[i],
             "day_num": d.day,
-            "is_today": (d == today),
+            "month_short": MONTH_NAMES.get(d.month, "")[:3],
+            "is_today": is_today_flag,
             "date_str": d.strftime("%Y-%m-%d"),
+            "day_slots": day_slots,
+            "slots_count": len(day_slots),
         })
-    end_of_week = start_of_week + timedelta(days=5)
 
-    if user.is_superuser or user.is_staff or profile.is_admin_role:
-        slots = ScheduleSlot.objects.filter(date__range=[start_of_week, end_of_week]).select_related("beneficiary", "therapist")
-    else:
-        slots = ScheduleSlot.objects.filter(
-            Q(therapist=profile) | Q(therapist__isnull=True),
-            date__range=[start_of_week, end_of_week]
-        ).select_related("beneficiary", "therapist")
-
-    hours_list = [f"{h:02d}:00" for h in range(9, 19)]
+    # Dynamic hours range: default 09:00..19:00, expanded if early/late slots exist
+    slot_hours = {s.start_time.hour for s in slots}
+    min_hour = min([9] + list(slot_hours))
+    max_hour = max([18] + list(slot_hours))
+    hours_list = [f"{h:02d}:00" for h in range(min_hour, max_hour + 1)]
 
     timetable_rows = []
     for hour_str in hours_list:
@@ -961,8 +1088,8 @@ def schedule_view(request):
         row_days = []
         for day in week_days:
             day_hour_slots = [
-                s for s in slots 
-                if s.date == day["date"] and s.start_time.hour == hour_int
+                s for s in day["day_slots"]
+                if s.start_time.hour == hour_int
             ]
             row_days.append({
                 "day": day,
@@ -973,7 +1100,28 @@ def schedule_view(request):
             "row_days": row_days,
         })
 
-    period_label = f"{start_of_week.day} — {end_of_week.day} {MONTH_NAMES.get(end_of_week.month, '')}, {end_of_week.year}"
+    if start_of_week.month == end_of_week.month:
+        period_label = f"{start_of_week.day} — {end_of_week.day} {MONTH_NAMES.get(end_of_week.month, '')}, {end_of_week.year}"
+    else:
+        period_label = (
+            f"{start_of_week.day} {MONTH_NAMES.get(start_of_week.month, '')} — "
+            f"{end_of_week.day} {MONTH_NAMES.get(end_of_week.month, '')}, {end_of_week.year}"
+        )
+
+    # Build quick month navigation pills (-1 month to +6 months from today)
+    viewed_month_anchor = start_of_week + timedelta(days=2)  # Wednesday determines primary month of the week
+    quick_months = []
+    first_of_current = date(today.year, today.month, 1)
+    for m_delta in range(-1, 7):
+        m_date = add_calendar_months(first_of_current, m_delta)
+        m_name = MONTH_NAMES.get(m_date.month, "")
+        label = f"{m_name}" if m_date.year == today.year else f"{m_name} '{str(m_date.year)[2:]}"
+        quick_months.append({
+            "ym": m_date.strftime("%Y-%m"),
+            "label": label,
+            "is_active": (m_date.year == viewed_month_anchor.year and m_date.month == viewed_month_anchor.month),
+        })
+
     beneficiaries = get_user_beneficiaries(user).filter(is_active=True)
 
     context = {
@@ -983,6 +1131,13 @@ def schedule_view(request):
         "week_offset": week_offset,
         "prev_offset": week_offset - 1,
         "next_offset": week_offset + 1,
+        "prev_month_offset": week_offset - 4,
+        "next_month_offset": week_offset + 4,
+        "quick_months": quick_months,
+        "viewed_month_ym": viewed_month_anchor.strftime("%Y-%m"),
+        "start_of_week_str": start_of_week.strftime("%Y-%m-%d"),
+        "selected_mobile_day_idx": selected_mobile_day_idx,
+        "week_total_slots": len(slots),
         "beneficiaries": beneficiaries,
         "today_str": today.strftime("%Y-%m-%d"),
         "therapy_types": [t[0] for t in ScheduleSlot.THERAPY_TYPES],
@@ -998,53 +1153,135 @@ def schedule_add_view(request):
         if not can_access_beneficiary(request.user, beneficiary):
             return HttpResponseForbidden()
 
-        profile, _ = TherapistProfile.objects.get_or_create(user=request.user)
+        profile = get_or_create_therapist(request.user)
         date_str = request.POST.get("date", date.today().isoformat())
-        slot_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        try:
+            slot_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            slot_date = date.today()
+
         time_str = request.POST.get("start_time", "10:00")
         try:
             start_time = datetime.strptime(time_str, "%H:%M").time()
         except ValueError:
             start_time = time(10, 0)
 
-        duration = int(request.POST.get("duration_minutes", 50) or 50)
+        try:
+            duration = int(request.POST.get("duration_minutes", 50) or 50)
+        except ValueError:
+            duration = 50
+
         therapy_type = request.POST.get("therapy_type", "ოკუპაციური თერაპია")
         notes = request.POST.get("notes", "").strip()
-        is_recurring = request.POST.get("is_recurring") == "on"
-        series_id = uuid.uuid4() if is_recurring else None
 
-        ScheduleSlot.objects.create(
-            therapist=profile,
-            beneficiary=beneficiary,
-            date=slot_date,
-            start_time=start_time,
-            duration_minutes=duration,
-            therapy_type=therapy_type,
-            notes=notes,
-            status="scheduled",
-            series_id=series_id,
-        )
+        # Flexible multi-month / multi-week / end-date recurrence + multi-weekday support
+        recurrence_mode = request.POST.get("recurrence_mode", "").strip()
+        legacy_recurring = request.POST.get("is_recurring") == "on"
+        if not recurrence_mode:
+            recurrence_mode = "months" if legacy_recurring else "single"
 
-        if is_recurring:
-            # Strictly next 3 weeks (total 4 weeks / 1 month)
-            for w in range(1, 4):
-                next_date = slot_date + timedelta(weeks=w)
-                ScheduleSlot.objects.create(
-                    therapist=profile,
-                    beneficiary=beneficiary,
-                    date=next_date,
-                    start_time=start_time,
-                    duration_minutes=duration,
-                    therapy_type=therapy_type,
-                    notes=notes,
-                    status="scheduled",
-                    series_id=series_id,
-                )
+        raw_weekdays = request.POST.getlist("weekdays")
+        selected_weekdays = set()
+        for w_str in raw_weekdays:
+            try:
+                w_int = int(w_str)
+                if 0 <= w_int <= 5:
+                    selected_weekdays.add(w_int)
+            except ValueError:
+                pass
+        if not selected_weekdays:
+            selected_weekdays.add(slot_date.weekday() if slot_date.weekday() <= 5 else 0)
 
-        messages.success(request, f"ვიზიტი დროს {start_time.strftime('%H:%M')} წარმატებით ჩაინიშნა.")
+        # Determine end_date for slot generation
+        if recurrence_mode == "single":
+            if len(selected_weekdays) <= 1 and slot_date.weekday() in selected_weekdays:
+                target_dates = [slot_date]
+            else:
+                # Multiple weekdays chosen for a single week
+                week_monday = slot_date - timedelta(days=slot_date.weekday())
+                target_dates = [
+                    week_monday + timedelta(days=wd)
+                    for wd in sorted(selected_weekdays)
+                    if (week_monday + timedelta(days=wd)) >= slot_date
+                ]
+                if not target_dates:
+                    target_dates = [slot_date]
+        else:
+            if recurrence_mode == "months":
+                try:
+                    repeat_months = int(request.POST.get("repeat_months", 1) or 1)
+                except ValueError:
+                    repeat_months = 1
+                repeat_months = max(1, min(24, repeat_months))
+                end_date = add_calendar_months(slot_date, repeat_months) - timedelta(days=1)
+            elif recurrence_mode == "weeks":
+                try:
+                    repeat_weeks = int(request.POST.get("repeat_weeks", 4) or 4)
+                except ValueError:
+                    repeat_weeks = 4
+                repeat_weeks = max(1, min(104, repeat_weeks))
+                end_date = slot_date + timedelta(weeks=repeat_weeks) - timedelta(days=1)
+            elif recurrence_mode == "until_date":
+                until_str = request.POST.get("repeat_until", "").strip()
+                try:
+                    end_date = datetime.strptime(until_str, "%Y-%m-%d").date()
+                except ValueError:
+                    end_date = add_calendar_months(slot_date, 1) - timedelta(days=1)
+                if end_date < slot_date:
+                    end_date = slot_date
+                # Cap at 2 years max safety
+                max_allowed = add_calendar_months(slot_date, 24)
+                if end_date > max_allowed:
+                    end_date = max_allowed
+            else:
+                end_date = add_calendar_months(slot_date, 1) - timedelta(days=1)
 
-    next_url = request.POST.get("next") or "schedule"
-    return redirect(next_url)
+            target_dates = []
+            curr_d = slot_date
+            while curr_d <= end_date:
+                if curr_d.weekday() in selected_weekdays:
+                    target_dates.append(curr_d)
+                curr_d += timedelta(days=1)
+
+            if not target_dates:
+                target_dates = [slot_date]
+
+        series_id = uuid.uuid4() if len(target_dates) > 1 else None
+        created_count = 0
+
+        for d_item in target_dates:
+            ScheduleSlot.objects.create(
+                therapist=profile,
+                beneficiary=beneficiary,
+                date=d_item,
+                start_time=start_time,
+                duration_minutes=duration,
+                therapy_type=therapy_type,
+                notes=notes,
+                status="scheduled",
+                series_id=series_id,
+            )
+            created_count += 1
+
+        if created_count > 1:
+            last_d_str = target_dates[-1].strftime("%d.%m.%Y")
+            messages.success(
+                request,
+                f"განრიგში წარმატებით ჩაინიშნა {created_count} ვიზიტი ({beneficiary.full_name}, {start_time.strftime('%H:%M')}, {last_d_str}-მდე)."
+            )
+        else:
+            messages.success(
+                request,
+                f"ვიზიტი ({beneficiary.full_name}, {slot_date.strftime('%d.%m.%Y')} {start_time.strftime('%H:%M')}) წარმატებით ჩაინიშნა."
+            )
+
+        next_url = request.POST.get("next")
+        if next_url:
+            return redirect(next_url)
+        from django.urls import reverse
+        return redirect(f"{reverse('schedule')}?date={slot_date.isoformat()}")
+
+    return redirect("schedule")
 
 
 @login_required
@@ -1086,7 +1323,6 @@ def schedule_edit_view(request, slot_id):
         slot.notes = request.POST.get("notes", "").strip()
         slot.save()
 
-        # Update entire future series if requested
         update_series = request.POST.get("update_series") == "on"
         if update_series and slot.series_id:
             future_slots = ScheduleSlot.objects.filter(
@@ -1145,6 +1381,3 @@ def schedule_delete_view(request, slot_id):
 
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "schedule"
     return redirect(next_url)
-
-
-

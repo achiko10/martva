@@ -1,70 +1,160 @@
 {% extends "base.html" %}
 
-{% block title %}სამუშაო მაგიდა — OT Progress{% endblock %}
+{% block title %}მთავარი დაფა — OT Progress{% endblock %}
 
 {% block content %}
-<div class="space-y-6 max-w-6xl mx-auto"> <!-- Top Clean Action Bar --> <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm"> <div> <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider"> ️ {{ current_year }} წლის {{ current_month_name }}
-            </div> <h1 class="text-xl sm:text-2xl font-black text-slate-900 mt-0.5"> გამარჯობა, {{ user.first_name|default:user.username }}!
-            </h1> <p class="text-xs text-slate-500 mt-1"> აირჩიეთ ბავშვი სესიის დასაფიქსირებლად ან თვის ანგარიშის სანახავად
-            </p> </div> <div class="flex items-center gap-3"> <a href="{% url 'session_create' %}"
-               class="inline-flex items-center px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/25 transition transform active:scale-95"> <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path> </svg> + ახალი სესია
-            </a> <a href="{% url 'beneficiary_create' %}"
-               class="inline-flex items-center px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition"> + ბავშვის დამატება
-            </a> </div> </div> <!-- Minimal Stats Cards --> <div class="grid grid-cols-3 gap-2 sm:gap-4"> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">აქტიური ბავშვები</div> <div class="text-xl sm:text-3xl font-black text-slate-900 mt-1">{{ beneficiaries_total }}</div> </div> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">დღევანდელი სესიები</div> <div class="text-xl sm:text-3xl font-black text-blue-600 mt-1">{{ today_sessions_count }}</div> </div> <div class="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm"> <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">სესიები ამ თვეში</div> <div class="text-xl sm:text-3xl font-black text-indigo-600 mt-1">{{ month_sessions_count }}</div> </div> </div>     {% if today_slots %}
-    <!-- Today's Schedule -->
-    <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-3">
-        <div class="flex items-center justify-between">
-            <h2 class="text-base font-bold text-slate-900 flex items-center">
-                <span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-2"></span> დღევანდელი განრიგი ({{ today_slots|length }})
-            </h2>
-            <a href="{% url 'schedule' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800">
-                სრული კალენდარი →
+<div class="space-y-5">
+
+    <!-- Top Compact Summary Strip -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
+        <div>
+            <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                👋 მოგესალმებით, {{ user.first_name|default:user.username }}
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">
+                აქტიური ბავშვები: <strong class="text-slate-800">{{ beneficiaries_total }}</strong> •
+                დღეს ჩატარდა: <strong class="text-emerald-700">{{ today_sessions_count }}</strong> •
+                {{ current_month_name }}ში სულ: <strong class="text-blue-700">{{ month_sessions_count }} სესია</strong>
+            </p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+            <a href="{% url 'schedule' %}"
+               class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center">
+                <span>📅 კალენდარი</span>
+            </a>
+            <a href="{% url 'session_create' %}"
+               class="px-3.5 py-2 bg-[#006a61] hover:bg-[#005049] text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center">
+                <span>+ სესიის ჩაწერა</span>
+            </a>
+            <a href="{% url 'beneficiary_create' %}"
+               class="col-span-2 sm:col-span-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition text-center">
+                + ახალი ბენეფიციარი
             </a>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+    </div>
+
+    <!-- Today's Compact Schedule Strip -->
+    {% if today_slots %}
+    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2.5">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-700">დღევანდელი განრიგი ({{ today_slots.count }})</span>
+            <a href="{% url 'schedule' %}" class="text-[11px] font-bold text-[#006a61] hover:underline">სრული კვირა →</a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {% for slot in today_slots %}
-            <div class="p-3 rounded-xl border {% if slot.status == 'completed' %}border-emerald-200 bg-emerald-50/40{% elif slot.status == 'missed' %}border-rose-200 bg-rose-50/40{% else %}border-blue-200 bg-blue-50/30{% endif %} flex items-center justify-between">
-                <div>
-                    <div class="text-[11px] font-bold text-slate-500">{{ slot.time_range_display }}</div>
-                    <div class="text-xs font-bold text-slate-900 mt-0.5">{{ slot.beneficiary.full_name }}</div>
-                    <div class="text-[10px] text-slate-400">{{ slot.therapy_type }}</div>
+            <div class="p-3 rounded-xl border flex items-center justify-between gap-2
+                {% if slot.status == 'completed' %}bg-emerald-50/50 border-emerald-200
+                {% elif slot.status == 'missed' %}bg-rose-50/50 border-rose-200 opacity-75
+                {% else %}bg-slate-50 border-slate-200{% endif %}">
+                <div class="min-w-0">
+                    <div class="text-[11px] font-black text-[#006a61]">{{ slot.time_range_display }}</div>
+                    <a href="{% url 'beneficiary_detail' slot.beneficiary.id %}" class="text-xs font-bold text-slate-900 hover:underline truncate block">
+                        {{ slot.beneficiary.full_name }}
+                    </a>
+                    <div class="text-[10px] text-slate-500 truncate">{{ slot.therapy_type }}</div>
                 </div>
-                <div>
-                    {% if slot.status == 'completed' %}
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">ჩატარდა</span>
-                    {% elif slot.status == 'missed' %}
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800">გაცდენა</span>
-                    {% else %}
-                        <a href="{% url 'session_create' %}?beneficiary_id={{ slot.beneficiary.id }}&slot_id={{ slot.id }}" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow-xs">
-                            + სესია
-                        </a>
-                    {% endif %}
-                </div>
+                {% if slot.status == 'scheduled' %}
+                <a href="{% url 'beneficiary_session_create' slot.beneficiary.id %}?slot_id={{ slot.id }}"
+                   class="shrink-0 px-2.5 py-1.5 bg-[#006a61] text-white rounded-lg text-[10px] font-bold hover:bg-[#005049]">
+                    ჩაწერა
+                </a>
+                {% elif slot.status == 'completed' %}
+                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md shrink-0">✓ ჩატარდა</span>
+                {% else %}
+                <span class="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md shrink-0">✕ გაცდენა</span>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
     </div>
     {% endif %}
 
-    <!-- Children Cards Grid --> <div class="space-y-3"> <div class="flex items-center justify-between"> <h2 class="text-base font-bold text-slate-900 flex items-center"> <span class="w-2.5 h-2.5 rounded-full bg-blue-600 mr-2"></span> ბავშვების სია (სწრაფი ქმედებები)
-            </h2> <a href="{% url 'beneficiary_list' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800"> სრული სია →
-            </a> </div> <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"> {% for item in beneficiary_cards %}
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:border-blue-200 hover:shadow-md transition flex flex-col justify-between"> <div> <!-- Child Info Header --> <div class="flex items-start justify-between"> <div> <a href="{% url 'beneficiary_detail' item.beneficiary.id %}" class="text-base font-bold text-slate-900 hover:text-blue-600 transition block"> {{ item.beneficiary.full_name }}
-                            </a> <div class="text-xs text-slate-500 mt-0.5"> ასაკი: <strong class="text-slate-700">{{ item.beneficiary.age_display }}</strong> </div> </div> <span class="px-2 py-0.5 rounded-full text-[11px] font-bold {{ item.rep_badge_class }}"> {{ item.report_status }}
-                        </span> </div> <!-- Clean Status Row --> <div class="flex items-center space-x-3 mt-3 py-2 px-3 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-100"> <div>ამ თვეში: <strong class="text-slate-900 font-bold">{{ item.month_sessions }}</strong> სესია</div> <span class="text-slate-300">•</span> <div>მიზნები: <strong class="text-slate-900 font-bold">{{ item.active_goals }}</strong> აქტიური</div> </div> </div> <!-- 2 Primary Action Buttons --> <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2"> <a href="{% url 'beneficiary_session_create' item.beneficiary.id %}"
-                       class="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold text-center shadow-sm shadow-blue-600/20 transition flex items-center justify-center"> <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg> + სესია
-                    </a> <a href="{% url 'monthly_report_create' item.beneficiary.id %}"
-                       class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold text-center transition flex items-center justify-center"> ანგარიში
-                    </a> </div> </div> {% empty %}
-            <div class="col-span-full py-12 text-center bg-white rounded-2xl border border-slate-200"> <div class="text-3xl mb-2"></div> <h3 class="text-sm font-bold text-slate-800">ბავშვები ჯერ არ არის დამატებული</h3> <p class="text-xs text-slate-500 mt-1">დაამატეთ ბავშვი სესიების ჩასანიშნად</p> <a href="{% url 'beneficiary_create' %}" class="mt-3 inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold"> + ბავშვის დამატება
-                </a> </div> {% endfor %}
-        </div> </div> <!-- Recent Sessions Simple List --> <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-sm"> <div class="flex items-center justify-between mb-3"> <h2 class="text-base font-bold text-slate-900 flex items-center"> <span class="w-2.5 h-2.5 rounded-full bg-teal-500 mr-2"></span> ბოლო ჩაწერილი სესიები
-            </h2> </div> <div class="divide-y divide-slate-100"> {% for s in recent_sessions %}
-            <div class="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 rounded-xl px-2 transition"> <div class="flex items-center space-x-3"> <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs"> {{ s.duration_minutes }}'
-                    </div> <div> <a href="{% url 'session_detail' s.id %}" class="text-sm font-bold text-slate-900 hover:text-blue-600 transition"> {{ s.beneficiary.full_name }}
-                        </a> <div class="text-xs text-slate-500 flex items-center space-x-2 mt-0.5"> <span>{{ s.date|date:"d.m.Y" }}</span> <span>•</span> <span class="text-slate-600">მდგომარეობა: <strong>{{ s.get_final_state_display }}</strong></span> </div> </div> </div> <div class="flex items-center space-x-2"> <a href="{% url 'session_detail' s.id %}" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"> ნახვა
-                    </a> </div> </div> {% empty %}
-            <div class="py-6 text-center text-slate-400 text-xs"> ჩანაწერები ჯერ არ ფიქსირდება.
-            </div> {% endfor %}
-        </div> </div> </div>
+    <!-- Main Section: Active Beneficiaries Cards -->
+    <div class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">ბენეფიციარები ({{ beneficiaries_total }})</h2>
+            <a href="{% url 'beneficiary_list' %}" class="text-xs font-bold text-[#006a61] hover:underline">ყველას ნახვა →</a>
+        </div>
+
+        {% if beneficiary_cards %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for item in beneficiary_cards %}
+            <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm hover:border-teal-500/50 transition flex flex-col justify-between">
+                <div>
+                    <div class="flex items-start justify-between gap-2">
+                        <a href="{% url 'beneficiary_detail' item.beneficiary.id %}" class="flex items-center space-x-3 group min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-teal-50 text-[#006a61] border border-teal-200/60 flex items-center justify-center font-black text-sm shrink-0">
+                                {{ item.beneficiary.first_name|slice:":1" }}{{ item.beneficiary.last_name|slice:":1" }}
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="font-bold text-slate-900 group-hover:text-[#006a61] transition text-sm leading-snug truncate">
+                                    {{ item.beneficiary.full_name }}
+                                </h3>
+                                <span class="text-[11px] text-slate-500">{{ item.beneficiary.age_display }}</span>
+                            </div>
+                        </a>
+
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ item.rep_badge_class }} shrink-0">
+                            {{ item.report_status }}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-3.5 p-2.5 rounded-xl bg-slate-50 text-xs">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">ამ თვის სესიები</span>
+                            <strong class="text-slate-800 font-bold">{{ item.month_sessions }} სესია</strong>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block">აქტიური მიზნები</span>
+                            <strong class="text-slate-800 font-bold">{{ item.active_goals }} მიზანი</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Quick Actions -->
+                <div class="flex items-center gap-2 mt-3.5 pt-3 border-t border-slate-100">
+                    <a href="{% url 'beneficiary_session_create' item.beneficiary.id %}"
+                       class="flex-1 py-2 px-3 bg-[#006a61] hover:bg-[#005049] text-white text-center rounded-xl text-xs font-bold transition">
+                        + სესია
+                    </a>
+                    <a href="{% url 'beneficiary_detail' item.beneficiary.id %}"
+                       class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">
+                        პროფილი
+                    </a>
+                    <a href="{% url 'monthly_report_create' item.beneficiary.id %}"
+                       title="თვის ანგარიში / PDF"
+                       class="py-2 px-2.5 bg-slate-100 hover:bg-teal-50 text-slate-600 hover:text-[#006a61] rounded-xl text-xs font-bold transition">
+                        📄
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white rounded-2xl p-8 text-center border border-slate-200">
+            <p class="text-sm text-slate-500">აქტიური ბენეფიციარები არ მოიძებნა.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Compact Recent Sessions List -->
+    {% if recent_sessions %}
+    <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm">
+        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">ბოლოს ჩატარებული სესიები</h2>
+        <div class="divide-y divide-slate-100">
+            {% for s in recent_sessions|slice:":5" %}
+            <a href="{% url 'session_detail' s.id %}" class="py-2.5 flex items-center justify-between hover:bg-slate-50 px-2 -mx-2 rounded-xl transition gap-2">
+                <div class="flex items-center space-x-3 min-w-0">
+                    <span class="text-xs font-bold text-slate-800 truncate">{{ s.beneficiary.full_name }}</span>
+                    <span class="text-[11px] text-slate-400 shrink-0">• {{ s.date|date:"d.m.Y" }}</span>
+                </div>
+                <span class="text-[11px] font-semibold text-[#006a61] shrink-0">ნახვა →</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
 {% endblock %}

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from datetime import date, timedelta
+from datetime import date
 from core.models import (
     TherapistProfile, Beneficiary, OccupationalProfile, SensoryProfile,
     Goal, SensorySystem, SensoryActivity, SensoryResponse, FunctionalOutcome,
@@ -9,10 +9,10 @@ from core.models import (
 
 
 class Command(BaseCommand):
-    help = "Seed initial sensory catalog, responses, outcomes, users and sample data"
+    help = "Seed clinical OT catalog (8 structured domains, smart checklists, responses, outcomes) and sample data"
 
     def handle(self, *args, **options):
-        self.stdout.write("Starting catalog seeding...")
+        self.stdout.write("Starting clinical OT catalog seeding...")
 
         # 1. Create Admin User
         admin_user, created = User.objects.get_or_create(
@@ -59,316 +59,331 @@ class Command(BaseCommand):
             }
         )
 
-        # 3. Sensory Systems & Activities
-        catalog = {
-            ("ტაქტილური", "tactile", "", 1): [
-                "ქვიშა", "კინეტიკური ქვიშა", "ბრინჯი", "ლობიო", "მაკარონი",
-                "პლასტელინი", "თიხა", "ქაფი", "გელი", "წყალი", "ღრუბელი",
-                "ბეწვი", "სხვადასხვა ქსოვილი", "ხე", "პლასტმასი", "რეზინი",
-                "ლითონი", "სხვადასხვა ტექსტურა", "ტაქტილური ბურთი",
-                "ტაქტილური ჯაგრისი", "ხელის მასაჟი", "ფეხის მასაჟი",
-                "ღრმა ზეწოლა", "მსუბუქი შეხება", "სხვადასხვა ზედაპირზე შეხება",
-                "საგნის დამალვა და ძიება", "სენსორულ ყუთში ძიება",
-                "ხელებით მასალასთან მუშაობა", "სხვა"
+        # 3. Deactivate old unorganized activities & systems first (safe for foreign keys)
+        SensoryActivity.objects.all().update(is_active=False)
+
+        # 8 Structured Clinical Domains & Activities
+        # Tuple format: (name, slug, category, evaluation_schema, icon, description, order)
+        clinical_catalog = {
+            (
+                "1. ვესტიბულარული სისტემა და პოსტურალური კონტროლი",
+                "vestibular",
+                "movement",
+                "vestibular",
+                "🎢",
+                "სწორხაზოვანი და როტაციული რწევა, დინამიკური წონასწორობა, გრავიტაციული უსაფრთხოება და ანტიგრავიტაციული პოსტურა",
+                1
+            ): [
+                (
+                    "სწორხაზოვანი რწევა საქანელაზე / პლატფორმაზე",
+                    "დამამშვიდებელი ან მასტიმულირებელი სწორხაზოვანი ვესტიბულარული სტიმულაცია"
+                ),
+                (
+                    "ჰამაკში (Lycra / ბადე) რწევა და პოზიციონირება",
+                    "სუპინაციაში, პრონაციაში ან ჯდომით რწევა და სხეულის ფლექსია/ექსტენზია"
+                ),
+                (
+                    "ბრუნვითი / როტაციული ვესტიბულარული სტიმულაცია",
+                    "მბრუნავი დისკი, კასრი, საქანელის დატრიალება — ნახევარრკალოვანი არხების სტიმულაცია"
+                ),
+                (
+                    "დინამიკური წონასწორობა არასტაბილურ ზედაპირზე",
+                    "ბალანსის დაფა, ბოსუ, ბალიშების ბილიკი, წონასწორობის რეაქციების გამოწვევა"
+                ),
+                (
+                    "გრავიტაციული გამოწვევა და სიმაღლის/დახრილობის დაძლევა",
+                    "სასრიალო, კიბეზე ასვლა-ჩამოსვლა, ფიტბოლზე გადახრა და პოსტურალური კორექცია"
+                ),
+                (
+                    "სკუტერ-ბორდზე (Scooter board) გადაადგილება",
+                    "მუცელზე წოლით (ანტიგრავიტაციული ექსტენზია) ან ჯდომით მანევრირება"
+                ),
             ],
-            ("პროპრიოცეპტული", "proprioceptive", "", 2): [
-                "მძიმე საგნის აწევა", "მძიმე საგნის ტარება", "ნივთის მიწოლა",
-                "ნივთის გამოწევა", "რეზინის გაწევა", "წინააღმდეგობის წინააღმდეგ მოძრაობა",
-                "კედელზე მიწოლა", "ბიძგები", "ხოხვა", "ცოცვა", "ოთხზე დგომა",
-                "ხელებზე დაყრდნობა", "სხეულის წონით დატვირთვა", "ხტომა",
-                "მძიმე საგნების გადაადგილება", "ბალიშებს შორის ზეწოლა",
-                "ღრმა წნევის აქტივობა", "შეკუმშვის ტიპის აქტივობა",
-                "მძიმე საბნის გამოყენება", "სხვა"
+            (
+                "2. პროპრიოცეპტული სისტემა, კუნთოვანი ტონუსი და სხეულის სქემა",
+                "proprioceptive",
+                "movement",
+                "proprioceptive",
+                "💪",
+                "მძიმე სამუშაო (Heavy Work), ღრმა წნევა, სახსრების კომპრესია, ძალის გრადაცია და სხეულის ცნობიერება",
+                2
+            ): [
+                (
+                    "მძიმე სამუშაო (Heavy Work): წონის აწევა, ტარება და დალაგება",
+                    "სიმძიმის ბურთები, ქვიშის ტომრები, მძიმე კუბების გადატანა მიზანმიმართულ თამაშში"
+                ),
+                (
+                    "წინააღმდეგობით მიწოლა და გამოწევა (Push & Pull)",
+                    "თოკის გაწევა, მძიმე ყუთის/ურიკის მიწოლა, ელასტიური ლენტის (თერაბენდის) გაჭიმვა"
+                ),
+                (
+                    "სახსრების კომპრესია და საკუთარი წონით დატვირთვა (Weight-bearing)",
+                    "ოთხზე ხოხვა, „დათვის/კიბორჩხალას სიარული“, კედელზე/ფიტბოლზე ხელებით მიწოლა"
+                ),
+                (
+                    "ღრმა პროპრიოცეპტული წნევა (Deep Pressure)",
+                    "„სენდვიჩის“ თამაში რბილი ლეიბებით, ფიტბოლით გადაგორება, დამძიმებული ჟილეტი/საბანი"
+                ),
+                (
+                    "ხტომა და იმპაქტური პროპრიოცეფცია",
+                    "ბატუტზე ხტომა, სიმაღლიდან რბილ ლეიბზე ან ბურთების აუზში ჩახტომა"
+                ),
+                (
+                    "სხეულის სქემა და პოზის იმიტაცია (Body Scheme)",
+                    "სხეულის ნაწილების იდენტიფიკაცია, სარკის გარეშე/დახუჭული თვალებით შეხების ლოკალიზაცია"
+                ),
             ],
-            ("ვესტიბულარული", "vestibular", "", 3): [
-                "საქანელა", "ჰამაკი", "სრიალი", "ბრუნვა", "ქანაობა",
-                "ხტომა", "სირბილი", "ცოცვა", "ბალანსის აქტივობა",
-                "ბალანსის ზედაპირი", "სხეულის პოზიციის ცვლილება",
-                "მოძრაობა წინ/უკან", "მოძრაობა მარცხნივ/მარჯვნივ",
-                "ზემოთ/ქვემოთ", "წრიული მოძრაობა", "დიაგონალური მოძრაობა", "სხვა"
+            (
+                "3. ტაქტილური მოდულაცია, დესენსიტიზაცია და ჰაპტიკური აღქმა",
+                "tactile",
+                "tactile_sensory",
+                "tactile",
+                "🖐️",
+                "ტექსტურების იერარქია (მშრალი, პლასტიკური, სველი/წებოვანი), ტაქტილური დაცვითობის შემცირება და სტერეოგნოზია",
+                3
+            ): [
+                (
+                    "მშრალი და ფხვიერი მასალების ტაქტილური კვლევა",
+                    "ბრინჯი, ლობიო, მარცვლეული, მშრალი ქვიშა, მაკარონი — სენსორულ ყუთში მუშაობა"
+                ),
+                (
+                    "პლასტიკური და ფორმირებადი მასალებით მუშაობა",
+                    "კინეტიკური ქვიშა, პლასტელინი, თერაპიული ცომი (Theraputty), თიხა"
+                ),
+                (
+                    "სველი, წებოვანი და ნახევრად თხევადი ტექსტურები",
+                    "საპნის ქაფი, გელი, სლაიმი, თითების საღებავები, წყლის თამაშები"
+                ),
+                (
+                    "კონტრასტული ზედაპირები და ტაქტილური ბილიკი",
+                    "ხაოიანი, ეკლიანი, ბეწვიანი, გლუვი, ცივი/თბილი ზედაპირები — ხელითა და ტერფებით"
+                ),
+                (
+                    "ტაქტილური დესენსიტიზაცია და ვიბრო-ტაქტილური სტიმულაცია",
+                    "ღრმა ტაქტილური დავარცხნა (Wilbarger), ვიბრაციული მასაჟორი, ტაქტილური ბურთით მასაჟი"
+                ),
+                (
+                    "სტერეოგნოზია და ჰაპტიკური დისკრიმინაცია",
+                    "მხედველობის კონტროლის გარეშე (ხელის შეხებით) საგნის ფორმისა და ზომის ამოცნობა"
+                ),
             ],
-            ("სმენითი", "auditory", "", 4): [
-                "მუსიკა", "ადამიანის ხმა", "ტაში", "მუსიკალური ინსტრუმენტი",
-                "ბუნებრივი ხმები", "თეთრი ხმაური", "მექანიკური ხმა",
-                "მაღალი სიხშირის ხმა", "დაბალი სიხშირის ხმა", "ხმაურიანი გარემო",
-                "მშვიდი გარემო", "სხვა"
+            (
+                "4. აუდიტორული, ვიზუალური და ორო-მოტორული / კვებითი სენსორიკა",
+                "sensory_perception",
+                "tactile_sensory",
+                "sensory_perception",
+                "👁️",
+                "აუდიტორული ფილტრაცია/რიტმი, ოკულომოტორული კონტროლი, სუნთქვით-ორომოტორული და გემოვნებით-ყნოსვითი მოდულაცია",
+                4
+            ): [
+                (
+                    "აუდიტორული დისკრიმინაცია და რიტმული სინქრონიზაცია",
+                    "მუსიკალური ინსტრუმენტები, ტაშის/რიტმის გამეორება, ხმის წყაროს ლოკალიზაცია"
+                ),
+                (
+                    "აუდიტორული მოდულაცია და აკუსტიკური ადაპტაცია",
+                    "თეთრი ხმაური, დამცავი ყურსასმენი, ფონურ ხმაურში ვერბალური ინსტრუქციის გამოყოფა"
+                ),
+                (
+                    "ოკულომოტორული კონტროლი და ვიზუალური ძიება/სკანირება",
+                    "მოძრავი ობიექტის/სინათლის თვალით მიდევნება, ფიგურა-ფონის გარჩევა, ვიზუალური ორგანიზება"
+                ),
+                (
+                    "ორო-მოტორული და რესპირატორული სტიმულაცია",
+                    "საპნის ბუშტების/სასტვენის გაბერვა, საწრუპით შებერვა/შეწოვა, ღეჭვითი ტრენაჟორი (Chewy tube)"
+                ),
+                (
+                    "კვებითი სენსორიკა (SOS მიდგომა) და ყნოსვით-გემოვნებითი კვლევა",
+                    "საკვების ტექსტურასთან, სუნთან და გემოსთან ეტაპობრივი შეგუება (შეხება → დაყნოსვა → გასინჯვა)"
+                ),
             ],
-            ("მხედველობითი", "visual", "", 5): [
-                "განათება", "ფერები", "კონტრასტული ფერები", "მოძრავი ობიექტი",
-                "განათებული ობიექტი", "ბუშტები", "საპნის ბუშტები", "მოძრავი სათამაშო",
-                "ვიზუალური ბარათები", "სარკე", "ვიზუალური ძიება", "თვალით მიდევნება",
-                "ფორმები", "ფიგურები", "ვიზუალური ორგანიზების აქტივობები", "სხვა"
+            (
+                "5. პრაქსისი (მოტორული დაგეგმვა), უხეში მოტორიკა და ბილატერალური ინტეგრაცია",
+                "praxis_gross",
+                "praxis_motor",
+                "praxis_gross",
+                "🧭",
+                "იდეაცია, მოტორული დაგეგმვა, სექვენსირება, შუა ხაზის გადაკვეთა და თვალ-ხელის კოორდინაცია",
+                5
+            ): [
+                (
+                    "მრავალსაფეხურიანი სენსორულ-მოტორული დაბრკოლებების ბილიკი",
+                    "Obstacle Course: გაძრომა, გადაბიჯება, აცოცება და მიზანში სროლა თანმიმდევრობის დაცვით"
+                ),
+                (
+                    "სხეულის შუა ხაზის გადაკვეთა და ბილატერალური კოორდინაცია",
+                    "ორივე ხელის/ფეხის სიმეტრიული, რეციპროკული და ასიმეტრიული შეთანხმებული მოძრაობა"
+                ),
+                (
+                    "ბურთით მანიპულაცია და თვალ-ხელის/ფეხის კოორდინაცია",
+                    "ბურთის დაჭერა, მიზანში/კალათში სროლა, კეგლის წაქცევა, ფეხით დარტყმა"
+                ),
+                (
+                    "პოსტურალური იმიტაცია და მოტორული სექვენსირება",
+                    "მოძრაობათა სერიის დამახსოვრება, თანმიმდევრული გამეორება და რიტმული კოორდინაცია"
+                ),
+                (
+                    "იდეაციური პრაქსისი (ახალი მოტორული აქტივობის მოფიქრება)",
+                    "თერაპიული აღჭურვილობისა და გარემოს ახალი, მიზანმიმართული გზით გამოყენების დაგეგმვა"
+                ),
             ],
-            ("ყნოსვითი", "olfactory", "", 6): [
-                "საკვების სუნი", "ხილის სუნი", "ყვავილის სუნი", "მცენარის სუნი",
-                "საპნის სუნი", "სხვა"
+            (
+                "6. წვრილი მოტორიკა, მანიპულაცია და გრაფომოტორიკა",
+                "fine_motor",
+                "praxis_motor",
+                "fine_motor",
+                "✍️",
+                "პინცეტური ჩაჭიდება, ხელის შიდა მანიპულაცია, მაკრატლით მუშაობა, კონსტრუირება და წერითი უნარები",
+                6
+            ): [
+                (
+                    "თითების იზოლირებული მოძრაობა და პინცეტური ჩაჭიდება (Pincer Grasp)",
+                    "წვრილი მძივების აცმა, მონეტების/ჩხირების ჩაყრა, სამაგრების/სარჭების გახსნა, პინცეტით მუშაობა"
+                ),
+                (
+                    "ხელის შიდა მანიპულაცია (In-hand Manipulation) და მტევნის ძალა",
+                    "საგნის თითებში გადაადგილება და შემობრუნება, მტევნის/თითების იზომეტრიული გაძლიერება"
+                ),
+                (
+                    "ბიმანუალური უნარები და მაკრატლით გაჭრა",
+                    "დამჭერი და მომქმედი ხელის კოორდინაცია: მაკრატლით სწორ/მრუდ ხაზზე გაჭრა, ქაღალდის დაკეცვა"
+                ),
+                (
+                    "ვიზუალურ-მოტორული კონსტრუირება და სივრცითი აწყობა",
+                    "ფაზლები, კუბებით ნიმუშის მიხედვით კონსტრუირება, ლეგო, მოზაიკა"
+                ),
+                (
+                    "გრაფომოტორული და წინარე-წერითი უნარები (Pre-writing)",
+                    "ხაზების გავლება, კონტურის შემოხაზვა, საზღვრებში გაფერადება, გეომეტრიული ფორმების/ასოების კოპირება"
+                ),
             ],
-            ("გემოვნებითი", "gustatory", "", 7): [
-                "ტკბილი საკვები/გემო", "მჟავე გემო", "მარილიანი გემო", "მწარე გემო",
-                "ნეიტრალური გემო", "რბილი ტექსტურა", "მყარი ტექსტურა",
-                "ხრაშუნა ტექსტურა", "წებოვანი ტექსტურა", "პიურესებრი ტექსტურა",
-                "თხევადი საკვები", "სხვა"
+            (
+                "7. თვითმოვლა (ADL), თამაში და აღმასრულებელი უნარები",
+                "adl_play",
+                "environment",
+                "adl_play",
+                "🧩",
+                "ყოველდღიური ცხოვრების აქტივობები (ჩაცმა, კვება, ჰიგიენა), ფუნქციურ-სიმბოლური თამაში და რუტინის ორგანიზება",
+                7
+            ): [
+                (
+                    "ჩაცმა-გახდისა და შესაკრავების პრაქტიკა (Dressing Skills)",
+                    "ქურთუკის/ფეხსაცმლის ჩაცმა-გახდა, ელვა-შესაკრავი, ღილები, ფხრიწი (Velcro), თასმის შეკვრა"
+                ),
+                (
+                    "კვებისა და პირადი ჰიგიენის უნარების პრაქტიკა",
+                    "კოვზის/ჩანგლის გამოყენება, ჭიქიდან დალევა, ხელების დაბანა-გამშრალების ალგორითმი"
+                ),
+                (
+                    "ფუნქციური და კონსტრუქციული თამაში",
+                    "სათამაშოს დანიშნულებისამებრ გამოყენება, მიზეზ-შედეგობრივი და დასრულებული სათამაშო ციკლი"
+                ),
+                (
+                    "სიმბოლური / წარმოსახვითი და როლური თამაში",
+                    "თოჯინის კვება, „ექიმობანა“, „მაღაზიობანა“, სიუჟეტის განვითარება და როლის მორგება"
+                ),
+                (
+                    "სოციალური ინტერაქცია, გაზიარება და რიგითობის დაცვა (Turn-taking)",
+                    "თერაპევტთან ან თანატოლთან დიალოგური თამაში, საკუთარი ჯერის დალოდება, წესების დაცვა"
+                ),
+                (
+                    "სამუშაო სივრცის ორგანიზება, ვიზუალური განრიგი და დალაგება (Clean-up)",
+                    "ვიზუალური სქემით აქტივობების თანმიმდევრობის დაცვა და სესიის ბოლოს ნივთების ადგილზე დაბრუნება"
+                ),
             ],
-            ("ინტერცეპციული", "interoceptive", "", 8): [
-                "შიმშილის ამოცნობა", "წყურვილის ამოცნობა", "ტუალეტის საჭიროების ამოცნობა",
-                "დაღლილობის აღქმა", "ძილიანობის აღქმა", "სიცივის შეგრძნება",
-                "სიცხის შეგრძნება", "ტკივილის ლოკალიზაცია", "გულისცემის აღქმა",
-                "სუნთქვის გაცნობიერება", "სხეულის დაძაბულობის აღქმა",
-                "სხეულის მდგომარეობის აღქმა", "ემოციური მდგომარეობის ამოცნობა", "სხვა"
+            (
+                "8. ინტეროცეფცია და თვითრეგულაციის სტრატეგიები",
+                "interoceptive",
+                "environment",
+                "interoception",
+                "🧘",
+                "სხეულის შინაგანი სიგნალების ამოცნობა, ემოციური ზონის იდენტიფიკაცია და თვითდამშვიდების სტრატეგიები",
+                8
+            ): [
+                (
+                    "ფიზიოლოგიური საჭიროებებისა და სხეულის სიგნალების ამოცნობა",
+                    "დაღლილობის, წყურვილის, შიმშილის, ტუალეტის საჭიროების ან ტემპერატურის გაცნობიერება"
+                ),
+                (
+                    "სუნთქვის, გულისცემისა და კუნთოვანი დაძაბულობის რეგულაცია",
+                    "ფიზიკური დატვირთვის შემდეგ სხეულზე დაკვირვება, დიაფრაგმული სუნთქვა, კუნთების რელაქსაცია"
+                ),
+                (
+                    "ემოციისა და რეგულაციის ზონის იდენტიფიკაცია (Zones of Regulation)",
+                    "ვიზუალურ თერმომეტრზე / ზონების დაფაზე საკუთარი ემოციური და ენერგეტიკული მდგომარეობის მონიშვნა"
+                ),
+                (
+                    "დამამშვიდებელი სენსორული სტრატეგიის შერჩევა და გამოყენება",
+                    "შესვენების მოთხოვნა, მშვიდ კუთხეში/კარავში განმარტოება, თვითრეგულაციის ხელსაწყოს გამოყენება"
+                ),
             ],
-            ("მულტისენსორული", "multisensory", "", 9): [
-                "ტაქტილური + პროპრიოცეპტული კომბინაცია",
-                "ვესტიბულარული + პროპრიოცეპტული კომბინაცია",
-                "ვესტიბულარული + ვიზუალური კომბინაცია",
-                "სენსორული დაბრკოლებების ბილიკი",
-                "მულტისენსორული სივრცე / კუთხე", "სხვა"
-            ]
         }
 
-        for (sys_name, sys_slug, sys_icon, sys_order), activities in catalog.items():
-            system_obj, _ = SensorySystem.objects.get_or_create(
+        for (sys_name, sys_slug, sys_cat, sys_schema, sys_icon, sys_desc, sys_order), activities in clinical_catalog.items():
+            system_obj, _ = SensorySystem.objects.update_or_create(
                 slug=sys_slug,
-                defaults={"name": sys_name, "icon": sys_icon, "order": sys_order}
+                defaults={
+                    "name": sys_name,
+                    "category": sys_cat,
+                    "evaluation_schema": sys_schema,
+                    "icon": sys_icon,
+                    "description": sys_desc,
+                    "order": sys_order,
+                }
             )
-            for act_name in activities:
-                SensoryActivity.objects.get_or_create(
+            for act_name, act_desc in activities:
+                SensoryActivity.objects.update_or_create(
                     sensory_system=system_obj,
-                    name=act_name
+                    name=act_name,
+                    defaults={
+                        "description": act_desc,
+                        "is_active": True,
+                    }
                 )
-        self.stdout.write("Sensory systems and activities populated.")
 
-        # 4. Sensory Responses
+        # Hide old legacy systems that are now merged into sensory_perception
+        SensorySystem.objects.filter(slug__in=["auditory", "visual", "olfactory", "gustatory", "multisensory"]).update(order=99)
+
+        self.stdout.write(self.style.SUCCESS("8 clinical domains and 44 structured activities populated."))
+
+        # 4. Clinical Sensory & Behavioral Responses
+        SensoryResponse.objects.all().update(is_active=False)
         responses = [
-            "მიიღო სტიმული",
-            "უარი თქვა",
-            "თავიდან აიცილა",
-            "ითხოვა გაგრძელება",
-            "თვითონ ეძებდა სტიმულს",
-            "საჭიროებდა დახმარებას",
-            "ჩართულობა გაიზარდა",
-            "ჩართულობა შემცირდა",
-            "რეგულაციის გაუმჯობესება შეინიშნა",
-            "დისტრესის ნიშნები",
-            "ნეიტრალური რეაქცია",
-            "სხვა"
+            "ადაპტური რეაქცია / სიამოვნებით ჩაერთო",
+            "სენსორული ძიება (ითხოვს მეტ ინტენსივობას/გამეორებას)",
+            "ჰიპერმგრძნობელობა / სენსორული დაცვითობა",
+            "თავის არიდება / კატეგორიული უარი",
+            "ჰიპორეაქტიულობა (საჭიროებს ძლიერ სტიმულს)",
+            "ეტაპობრივი დესენსიტიზაცია / გაიზარდა ტოლერანტობა",
+            "გაუმჯობესდა პოსტურალური კონტროლი და ტონუსი",
+            "გაუმჯობესდა თვითრეგულაცია და დამშვიდდა",
+            "გაიზარდა ყურადღების კონცენტრაცია და ჩართულობა",
+            "გამოვლინდა სენსორული გადატვირთვა / დისტრესი",
         ]
         for idx, resp_name in enumerate(responses):
-            SensoryResponse.objects.get_or_create(name=resp_name, defaults={"order": idx})
+            SensoryResponse.objects.update_or_create(
+                name=resp_name,
+                defaults={"order": idx, "is_active": True}
+            )
 
-        # 5. Functional Outcomes
+        # 5. Clinical Adaptive Responses / Functional Outcomes
+        FunctionalOutcome.objects.all().update(is_active=False)
         outcomes = [
-            "ყურადღების გაზრდა",
-            "აქტივობაში ჩართულობა",
-            "თვითრეგულაცია",
-            "გადასვლის გამარტივება",
-            "თამაშში ჩართულობა",
-            "წვრილი მოტორიკისთვის მომზადება",
-            "თვითმოვლისთვის მომზადება",
-            "სასწავლო აქტივობისთვის მომზადება",
-            "სოციალური ჩართულობა",
-            "სხეულის ცნობიერება",
-            "მოტორული დაგეგმვა",
-            "დავალების დასრულება",
-            "ფუნქციური დამოუკიდებლობა",
-            "სხვა"
+            "გაუმჯობესდა თვითრეგულაცია და ემოციური სტაბილურობა",
+            "გაიზარდა მაგიდასთან / მიზანმიმართულ აქტივობაში ყურადღების ხანგრძლივობა",
+            "წარმატებით განახორციელა მრავალსაფეხურიანი მოტორული გეგმა (პრაქსისი)",
+            "გაიზარდა ტაქტილური / ვესტიბულარული სტიმულების მიმართ ტოლერანტობა",
+            "შემცირდა დახმარების საჭიროება წვრილი მოტორიკის / გრაფომოტორულ დავალებაში",
+            "გაიზარდა დამოუკიდებლობა თვითმოვლის (ADL) კომპონენტებში",
+            "გამარტივდა აქტივობებს შორის გადასვლა (Transition) ვიზუალური/ვერბალური მხარდაჭერით",
+            "გაუმჯობესდა ორმხრივი (ბილატერალური) და თვალ-ხელის კოორდინაცია",
+            "გაიზარდა ფუნქციურ/სიმბოლურ თამაშში ჩართულობა და კომუნიკაცია",
+            "დამოუკიდებლად გამოიყენა თვითდამშვიდების / ინტეროცეპციული სტრატეგია",
         ]
         for idx, out_name in enumerate(outcomes):
-            FunctionalOutcome.objects.get_or_create(name=out_name, defaults={"order": idx})
-
-        # 6. Sample Beneficiaries
-        b1, created1 = Beneficiary.objects.get_or_create(
-            first_name="გიორგი",
-            last_name="ბერიძე",
-            defaults={
-                "date_of_birth": date(2019, 5, 14),
-                "start_date": date(2024, 1, 15),
-                "therapist": therapist_profile,
-                "session_duration_minutes": 45,
-                "weekly_sessions_planned": 3,
-                "notes": "დიაგნოზი: აუტისტური სპექტრი. სენსორული ძიების მაღალი ტენდენცია (პროპრიოცეპტული/ვესტიბულარული)."
-            }
-        )
-        if created1:
-            OccupationalProfile.objects.create(
-                beneficiary=b1,
-                self_care="ჩაცმა საჭიროებს საშუალო დახმარებას. ჭურჭლის გამოყენება დამოუკიდებელია. ხელების დაბანა სიტყვიერი მითითებით.",
-                play="ფუნქციური თამაში განვითარებულია, წარმოსახვითი თამაში საჭიროებს თერაპევტის მოდელირებას.",
-                attention="აქტივობაში ჩართულობის საწყისი ხანგრძლივობა 3-4 წუთი. სენსორული ინტერვენციის შემდეგ იზრდება 8 წუთამდე.",
-                motor_skills="წვრილი მოტორიკა: ფანქრის სამთითა ჩაჭიდება ჩამოყალიბების პროცესშია. ბალანსი კარგია.",
-                functional_participation="სასწავლო აქტივობებში ჩართვა რთულდება ხმაურიან გარემოში. გადასვლები მოითხოვს ვიზუალურ განრიგს."
-            )
-            SensoryProfile.objects.create(
-                beneficiary=b1,
-                tactile="იღებს სხვადასხვა ტექსტურას (ქვიშა, პლასტელინი), ერიდება წებოვან მასალებს.",
-                proprioceptive="მაღალი ძიება: უყვარს მძიმე საგნების ტარება, კედელზე მიწოლა, ხტომა.",
-                vestibular="საქანელაზე ხანგრძლივი რწევა მოსწონს, წრიულ ბრუნვას კარგად იტანს.",
-                auditory="მგრძნობიარეა მაღალი სიხშირის მოულოდნელ ხმებზე.",
-                visual="კარგად რეაგირებს ვიზუალურ ბარათებსა და მკაფიო კონტრასტზე."
-            )
-            # Goals for b1
-            g1 = Goal.objects.create(
-                beneficiary=b1,
-                therapist=therapist_profile,
-                domain="sensory_regulation",
-                description="სენსორული რეგულაციის გაუმჯობესება პროპრიოცეპტული აქტივობების მეშვეობით",
-                baseline_state="აღგზნებული, ხშირი მოტორული მოუსვენრობა",
-                target_state="სტაბილური მდგომარეობა და თვითრეგულაციის უნარი 20 წუთის განმავლობაში",
-                metric_unit="წუთი",
-                target_date=date(2026, 12, 31),
-                status="active"
-            )
-            g2 = Goal.objects.create(
-                beneficiary=b1,
-                therapist=therapist_profile,
-                domain="attention",
-                description="მაგიდის აქტივობაში ყურადღების შენარჩუნება მინიმალური დახმარებით",
-                baseline_state="3 წუთი",
-                target_state="8-10 წუთი",
-                metric_unit="წუთი",
-                target_date=date(2026, 11, 30),
-                status="active"
-            )
-            g3 = Goal.objects.create(
-                beneficiary=b1,
-                therapist=therapist_profile,
-                domain="fine_motor",
-                description="მაკრატლით სწორ ხაზზე გაჭრა სიტყვიერი მითითებით",
-                baseline_state="სრული დახმარება",
-                target_state="მცირე დახმარება / დამოუკიდებლად",
-                metric_unit="დახმარების დონე",
-                target_date=date(2026, 10, 31),
-                status="active"
+            FunctionalOutcome.objects.update_or_create(
+                name=out_name,
+                defaults={"order": idx, "is_active": True}
             )
 
-            # Generate sample sessions for current month (September 2026) to demonstrate progress & report
-            today = date(2026, 9, 11)
-            resp_accepted = SensoryResponse.objects.get(name="მიიღო სტიმული")
-            resp_engaged = SensoryResponse.objects.get(name="ჩართულობა გაიზარდა")
-            resp_sought = SensoryResponse.objects.get(name="თვითონ ეძებდა სტიმულს")
-            resp_regulated = SensoryResponse.objects.get(name="რეგულაციის გაუმჯობესება შეინიშნა")
-
-            fo_attention = FunctionalOutcome.objects.get(name="ყურადღების გაზრდა")
-            fo_engagement = FunctionalOutcome.objects.get(name="აქტივობაში ჩართულობა")
-            fo_regulation = FunctionalOutcome.objects.get(name="თვითრეგულაცია")
-
-            act_swing = SensoryActivity.objects.get(name="საქანელა")
-            act_heavy = SensoryActivity.objects.get(name="მძიმე საგნის ტარება")
-            act_sand = SensoryActivity.objects.get(name="კინეტიკური ქვიშა")
-
-            # Session 1: Sept 1
-            s1 = Session.objects.create(
-                beneficiary=b1, therapist=therapist_profile,
-                date=date(2026, 9, 1), duration_minutes=45,
-                initial_state="aroused", final_state="stable",
-                notes="სესიის დასაწყისში შეინიშნებოდა მაღალი მოტორული აქტივობა. პროპრიოცეპტული დატვირთვის შემდეგ დამშვიდდა."
-            )
-            s1.goals.add(g1, g2)
-            s1.functional_outcomes.add(fo_regulation, fo_attention)
-            sa1 = SessionSensoryActivity.objects.create(
-                session=s1, sensory_activity=act_heavy, duration_minutes=6,
-                intensity="medium", assistance_level="moderate", activity_start="cue"
-            )
-            sa1.responses.add(resp_accepted, resp_engaged)
-            sa2 = SessionSensoryActivity.objects.create(
-                session=s1, sensory_activity=act_swing, duration_minutes=5,
-                intensity="low", assistance_level="moderate", movement_direction="forward", speed="slow"
-            )
-            sa2.responses.add(resp_accepted, resp_regulated)
-
-            # Session 2: Sept 4
-            s2 = Session.objects.create(
-                beneficiary=b1, therapist=therapist_profile,
-                date=date(2026, 9, 4), duration_minutes=45,
-                initial_state="active", final_state="calm",
-                notes="კინეტიკურ ქვიშასთან მუშაობამ გაზარდა ფოკუსირება. მაგიდის აქტივობა შეასრულა 5 წუთის განმავლობაში."
-            )
-            s2.goals.add(g2, g3)
-            s2.functional_outcomes.add(fo_attention, fo_engagement)
-            sa3 = SessionSensoryActivity.objects.create(
-                session=s2, sensory_activity=act_sand, duration_minutes=7,
-                intensity="low", assistance_level="minimal", activity_start="independent"
-            )
-            sa3.responses.add(resp_accepted, resp_sought, resp_engaged)
-
-            # Session 3: Sept 8
-            s3 = Session.objects.create(
-                beneficiary=b1, therapist=therapist_profile,
-                date=date(2026, 9, 8), duration_minutes=45,
-                initial_state="tense", final_state="more_engaged",
-                notes="საქანელისა და მძიმე ტვირთის კომბინაციით მიღწეულ იქნა კარგი ჩართულობა."
-            )
-            s3.goals.add(g1, g2)
-            s3.functional_outcomes.add(fo_regulation, fo_engagement)
-            sa4 = SessionSensoryActivity.objects.create(
-                session=s3, sensory_activity=act_heavy, duration_minutes=8,
-                intensity="high", assistance_level="minimal", activity_start="independent"
-            )
-            sa4.responses.add(resp_accepted, resp_engaged, resp_regulated)
-
-            # Session 4: Sept 11 (Today)
-            s4 = Session.objects.create(
-                beneficiary=b1, therapist=therapist_profile,
-                date=date(2026, 9, 11), duration_minutes=45,
-                initial_state="active", final_state="stable",
-                notes="ბავშვმა დამოუკიდებლად გამოხატა ინტერესი პროპრიოცეპტული თამაშის მიმართ. ყურადღება მაგიდასთან შენარჩუნდა 8 წუთი."
-            )
-            s4.goals.add(g1, g2, g3)
-            s4.functional_outcomes.add(fo_attention, fo_regulation)
-            sa5 = SessionSensoryActivity.objects.create(
-                session=s4, sensory_activity=act_heavy, duration_minutes=8,
-                intensity="medium", assistance_level="minimal", activity_start="independent"
-            )
-            sa5.responses.add(resp_sought, resp_engaged, resp_regulated)
-
-        # Beneficiary 2: Nino
-        b2, created2 = Beneficiary.objects.get_or_create(
-            first_name="ნინო",
-            last_name="კაპანაძე",
-            defaults={
-                "date_of_birth": date(2020, 8, 20),
-                "start_date": date(2024, 3, 1),
-                "therapist": therapist_profile,
-                "session_duration_minutes": 45,
-                "weekly_sessions_planned": 2,
-                "notes": "ტაქტილური ჰიპერმგრძნობელობა, ყურადღების დეფიციტი."
-            }
-        )
-        if created2:
-            OccupationalProfile.objects.create(
-                beneficiary=b2,
-                self_care="ხელების დაბანისას ერიდება საპნის შეხებას. ჩაცმა დამოუკიდებელია.",
-                play="უპირატესობას ანიჭებს მარტო თამაშს, უყვარს კონსტრუქტორი.",
-                attention="ხანმოკლე ჩართულობა (2-3 წთ), საჭიროებს ხშირ სტიმულაციას.",
-                motor_skills="მოტორული დაგეგმვა კარგია, წვრილი მოტორიკა ასაკობრივი ნორმის ფარგლებში.",
-                functional_participation="ჯგუფურ აქტივობებში უჭირს ხანგრძლივად დარჩენა."
-            )
-            SensoryProfile.objects.create(
-                beneficiary=b2,
-                tactile="ტაქტილური დაცვითობა: უარს ამბობს სველ და წებოვან მასალებზე.",
-                vestibular="ზომიერი ინტერესი საქანელების მიმართ.",
-                auditory="მგრძნობიარეა ხმაურზე."
-            )
-            Goal.objects.create(
-                beneficiary=b2,
-                therapist=therapist_profile,
-                domain="sensory_regulation",
-                description="მშრალი ტაქტილური მასალების (ბრინჯი, მარცვლეული) შეხების ტოლერანტობის გაზრდა",
-                baseline_state="უარი შეხებაზე",
-                target_state="მასალასთან დამოუკიდებელი თამაში 3-5 წთ",
-                metric_unit="წუთი",
-                target_date=date(2026, 11, 15),
-                status="active"
-            )
-            Goal.objects.create(
-                beneficiary=b2,
-                therapist=therapist_profile,
-                domain="attention",
-                description="დავალების დასრულება 1 სიტყვიერი მითითებით",
-                baseline_state="დიდი დახმარება",
-                target_state="მცირე დახმარება",
-                metric_unit="დახმარების დონე",
-                target_date=date(2026, 10, 30),
-                status="active"
-            )
-
-        self.stdout.write(self.style.SUCCESS("All catalog and sample data loaded successfully!"))
+        self.stdout.write(self.style.SUCCESS("Clinical responses and functional outcomes updated successfully!"))

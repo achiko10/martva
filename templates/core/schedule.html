@@ -1,499 +1,1016 @@
 {% extends "base.html" %}
 
-{% block title %}პირადი განრიგი და აღრიცხვა — OT Progress{% endblock %}
+{% block title %}კვირისა და თვეების განრიგი — OT Progress{% endblock %}
 
 {% block content %}
-<div class="space-y-3 sm:space-y-4 pb-16 sm:pb-0">
+<div class="space-y-4">
 
-    <!-- Top Action & Navigation Bar -->
-    <div class="bg-white rounded-2xl p-3 sm:p-5 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="flex items-center justify-between sm:justify-start gap-2 flex-wrap w-full sm:w-auto">
-            <h1 class="text-base sm:text-xl font-black text-slate-900">პირადი განრიგი</h1>
-            
-            <!-- Week Switcher -->
-            <div class="flex items-center space-x-1 border border-slate-200 rounded-xl p-0.5 sm:p-1 bg-slate-50 text-xs font-bold">
-                <a href="?week_offset={{ prev_offset }}" class="px-2 py-1 hover:bg-white rounded-lg transition text-slate-600 hover:text-slate-900" title="წინა კვირა">◀</a>
-                <a href="?week_offset=0" class="px-2 sm:px-3 py-1 {% if week_offset == 0 %}bg-white text-blue-700 shadow-sm{% else %}text-slate-600 hover:bg-white{% endif %} rounded-lg transition text-[11px] sm:text-xs">დღეს</a>
-                <a href="?week_offset={{ next_offset }}" class="px-2 py-1 hover:bg-white rounded-lg transition text-slate-600 hover:text-slate-900" title="შემდეგი კვირა">▶</a>
-            </div>
-
-            <span class="text-xs sm:text-sm font-bold text-slate-700 ml-auto sm:ml-1">
-                {{ period_label }}
-            </span>
-        </div>
-
-        <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-            <!-- Status Legend -->
-            <div class="flex items-center space-x-2 sm:space-x-3 text-[10px] sm:text-xs font-semibold text-slate-500 mr-0 sm:mr-2">
-                <span class="flex items-center"><span class="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-blue-500 mr-1 sm:mr-1.5"></span><span class="sm:inline hidden">დაგეგმილი</span><span class="sm:hidden">გეგმა</span></span>
-                <span class="flex items-center"><span class="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-emerald-500 mr-1 sm:mr-1.5"></span><span class="sm:inline hidden">ჩატარდა</span><span class="sm:hidden">მოვიდა</span></span>
-                <span class="flex items-center"><span class="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-rose-500 mr-1 sm:mr-1.5"></span>გაცდენა</span>
-            </div>
-
-            <button onclick="openAddModal('{{ today_str }}', '10:00')" type="button" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-600/30 transition transform active:scale-95 ml-auto sm:ml-0">
-                <span class="mr-1 text-sm font-bold">+</span> <span class="hidden sm:inline">ვიზიტის</span> ჩანიშვნა
-            </button>
-        </div>
-    </div>
-
-    <!-- Calendar Timetable Grid (100% responsive, fits on mobile without horizontal scroll) -->
-    <div class="-mx-2 sm:mx-0 bg-white rounded-xl sm:rounded-2xl border border-slate-200 shadow-sm overflow-hidden w-auto sm:w-full">
-        <!-- Days Header -->
-        <div class="grid grid-cols-[34px_repeat(6,minmax(0,1fr))] sm:grid-cols-[70px_repeat(6,minmax(0,1fr))] border-b border-slate-200 bg-slate-50/90 text-xs font-bold text-slate-700 sticky top-0 z-10">
-            <div class="p-1 sm:p-3 text-[10px] sm:text-xs text-center text-slate-400 border-r border-slate-200 flex items-center justify-center">დრო</div>
-            {% for day in week_days %}
-            <div class="py-1 px-0.5 sm:p-3 text-center border-r border-slate-200 last:border-r-0 {% if day.is_today %}bg-blue-50/90 text-blue-700 font-black{% endif %}">
-                <div class="hidden sm:block text-xs">{{ day.day_name }}</div>
-                <div class="block sm:hidden text-[11px] font-black leading-tight">{{ day.day_short }}</div>
-                <div class="text-[10px] sm:text-[11px] {% if day.is_today %}text-blue-600 font-black{% else %}text-slate-400 font-semibold{% endif %}">
-                    {{ day.day_num }}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Timetable Rows -->
-        <div class="divide-y divide-slate-100">
-            {% for row in timetable_rows %}
-            <div class="grid grid-cols-[34px_repeat(6,minmax(0,1fr))] sm:grid-cols-[70px_repeat(6,minmax(0,1fr))] min-h-[54px] sm:min-h-[72px]">
-                <!-- Hour Label -->
-                <div class="p-0.5 sm:p-2 text-[9px] sm:text-xs font-bold text-slate-400 text-center border-r border-slate-200 bg-slate-50/40 flex items-center justify-center select-none leading-none">
-                    {{ row.hour }}
+    <!-- Top Header & Navigation Controls -->
+    <div class="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-sm space-y-3">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <!-- Title & Period Summary -->
+            <div class="flex items-start sm:items-center justify-between gap-2">
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">განრიგი და კალენდარი</h1>
+                        <span class="px-2.5 py-0.5 rounded-full bg-teal-50 text-[#006a61] border border-teal-200/70 text-[11px] font-bold">
+                            {{ period_label }}
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
+                            კვირაში: {{ week_total_slots }} ვიზიტი
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-0.5">
+                        დააჭირეთ თავისუფალ უჯრას ან „+ ჩანიშვნა" ღილაკს ერთჯერადი ან მრავალთვიანი სერიის დასაგეგმად
+                    </p>
                 </div>
 
-                <!-- 6 Day Columns -->
-                {% for day_col in row.row_days %}
-                <div class="p-0.5 sm:p-1 border-r border-slate-100 last:border-r-0 {% if day_col.day.is_today %}bg-blue-50/10{% endif %} hover:bg-slate-50/70 transition relative group flex flex-col justify-start">
-                    
-                    <!-- Slots in this Hour/Day -->
-                    {% if day_col.slots %}
-                        <div class="space-y-1 w-full">
-                            {% for slot in day_col.slots %}
-                            <div onclick="openEventDetails({
-                                    id: '{{ slot.id }}',
-                                    name: '{{ slot.beneficiary.full_name|escapejs }}',
-                                    beneficiaryId: '{{ slot.beneficiary.id }}',
-                                    date: '{{ slot.date|date:'Y-m-d' }}',
-                                    startTime: '{{ slot.start_time|time:'H:i' }}',
-                                    duration: '{{ slot.duration_minutes }}',
-                                    timeRange: '{{ slot.time_range_display }}',
-                                    therapyType: '{{ slot.therapy_type|escapejs }}',
-                                    status: '{{ slot.status }}',
-                                    sessionUrl: '{% if slot.session %}{% url 'session_detail' slot.session.id %}{% else %}{% url 'session_create' %}?beneficiary_id={{ slot.beneficiary.id }}&slot_id={{ slot.id }}{% endif %}',
-                                    hasSession: {% if slot.session %}true{% else %}false{% endif %},
-                                    notes: '{{ slot.notes|default:''|escapejs }}',
-                                    hasSeries: {% if slot.series_id %}true{% else %}false{% endif %}
-                                 })" 
-                                 class="cursor-pointer rounded-md sm:rounded-lg p-1 sm:p-1.5 transition shadow-xs hover:shadow-md 
-                                        {% if slot.status == 'completed' %}bg-emerald-50 border-l-2 sm:border-l-4 border-emerald-500 text-emerald-900
-                                        {% elif slot.status == 'missed' %}bg-rose-50 border-l-2 sm:border-l-4 border-rose-500 text-rose-900
-                                        {% else %}bg-blue-50 border-l-2 sm:border-l-4 border-blue-500 text-blue-900{% endif %}"
-                                 title="{{ slot.beneficiary.full_name }} ({{ slot.time_range_display }})">
-                                
-                                <div class="flex items-center justify-between text-[8px] sm:text-[10px] font-bold opacity-80 leading-none">
-                                    <span class="truncate">{{ slot.start_time|time:"H:i" }}{% if slot.series_id %}<span class="text-[9px] ml-0.5" title="განმეორებადი სერია">🔄</span>{% endif %}</span>
-                                    {% if slot.status == 'completed' %}
-                                        <span class="text-emerald-700 font-black">✓</span>
-                                    {% elif slot.status == 'missed' %}
-                                        <span class="text-rose-700 font-black">✕</span>
-                                    {% endif %}
-                                </div>
+                <!-- Primary Add Button (Visible on Mobile Top Right too) -->
+                <button type="button" onclick="openAddSlotModal('{{ today_str }}', '10:00')"
+                        class="lg:hidden shrink-0 px-3 py-2 bg-[#006a61] hover:bg-[#005049] text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    <span>ჩანიშვნა</span>
+                </button>
+            </div>
 
-                                <div class="font-black text-[9.5px] sm:text-xs truncate mt-0.5 leading-tight">
-                                    {{ slot.beneficiary.full_name }}
-                                </div>
-
-                                <div class="hidden sm:block text-[10px] opacity-75 truncate">
-                                    {{ slot.therapy_type }}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <!-- Empty clickable area to add appointment -->
-                        <button onclick="openAddModal('{{ day_col.day.date_str }}', '{{ row.hour }}')" 
-                                type="button" 
-                                class="w-full h-full min-h-[44px] sm:min-h-0 text-slate-200 sm:opacity-0 group-hover:opacity-100 flex items-center justify-center hover:text-blue-600 font-bold text-xs transition rounded hover:bg-blue-50/50">
-                            +
-                        </button>
-                    {% endif %}
-
+            <!-- Week / Month Stepper + Date Picker + Desktop Add Button -->
+            <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2">
+                <!-- Stepper Controls -->
+                <div class="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/70">
+                    <a href="?week_offset={{ prev_month_offset }}"
+                       class="px-2 py-1 rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 text-[11px] font-bold transition"
+                       title="1 თვით უკან (-4 კვირა)">
+                        « -1თვ
+                    </a>
+                    <a href="?week_offset={{ prev_offset }}"
+                       class="px-2.5 py-1 rounded-lg hover:bg-white text-slate-700 text-xs font-bold transition"
+                       title="წინა კვირა">
+                        ◀
+                    </a>
+                    <a href="?week_offset=0"
+                       class="px-2.5 py-1 rounded-lg {% if week_offset == 0 %}bg-white text-[#006a61] shadow-sm{% else %}text-slate-600 hover:bg-white{% endif %} text-xs font-bold transition">
+                        დღეს
+                    </a>
+                    <a href="?week_offset={{ next_offset }}"
+                       class="px-2.5 py-1 rounded-lg hover:bg-white text-slate-700 text-xs font-bold transition"
+                       title="შემდეგი კვირა">
+                        ▶
+                    </a>
+                    <a href="?week_offset={{ next_month_offset }}"
+                       class="px-2 py-1 rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 text-[11px] font-bold transition"
+                       title="1 თვით წინ (+4 კვირა)">
+                        +1თვ »
+                    </a>
                 </div>
+
+                <!-- Direct Date Jump Input -->
+                <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase hidden sm:inline">თარიღზე გადასვლა:</span>
+                    <input type="date" value="{{ start_of_week_str }}"
+                           onchange="if(this.value) window.location.href='?date=' + this.value"
+                           class="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                           title="აირჩიეთ ნებისმიერი თარიღი კალენდარში გადასასვლელად">
+                </div>
+
+                <!-- Desktop Add Slot Button -->
+                <button type="button" onclick="openAddSlotModal('{{ today_str }}', '10:00')"
+                        class="hidden lg:inline-flex px-3.5 py-2 bg-[#006a61] hover:bg-[#005049] text-white rounded-xl text-xs font-bold shadow-sm transition items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    <span>ვიზიტის ჩანიშვნა</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Month Switcher Bar (-1 Month to +6 Months) + Mobile View Mode Toggle -->
+        <div class="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <!-- Scrollable Month Pills -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0 mr-1">თვეები:</span>
+                {% for m in quick_months %}
+                <a href="?month={{ m.ym }}"
+                   class="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold transition border
+                   {% if m.is_active %}
+                       bg-[#006a61] text-white border-[#006a61] shadow-sm
+                   {% else %}
+                       bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200/80
+                   {% endif %}">
+                    {{ m.label }}
+                </a>
                 {% endfor %}
             </div>
-            {% endfor %}
+
+            <!-- Mobile View Mode Switcher (Day Agenda vs Full Week Grid) -->
+            <div class="flex sm:hidden items-center justify-between bg-slate-100 p-1 rounded-xl border border-slate-200/70">
+                <button type="button" id="btn-mobile-day-view" onclick="setMobileScheduleMode('day')"
+                        class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition bg-white text-[#006a61] shadow-sm">
+                    📋 დღის განრიგი
+                </button>
+                <button type="button" id="btn-mobile-week-view" onclick="setMobileScheduleMode('week')"
+                        class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition text-slate-600">
+                    📅 კვირის ბადე (6 დღე)
+                </button>
+            </div>
         </div>
     </div>
 
-</div>
-
-<!-- ==================== POPUP: EVENT DETAILS & QUICK ACTIONS ==================== -->
-<div id="popover-event" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl p-5 sm:p-6 max-w-sm w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
-        <div class="flex items-start justify-between">
-            <div>
-                <h3 id="pop-name" class="text-base font-black text-slate-900"></h3>
-                <div id="pop-time" class="text-xs font-bold text-slate-500 mt-0.5"></div>
-                <div id="pop-type" class="text-xs font-semibold text-blue-600 mt-0.5"></div>
-                <div id="pop-series-badge" class="hidden inline-flex items-center text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md mt-1.5">
-                    🔄 განმეორებადი სერია (1 თვე)
-                </div>
-                <div id="pop-notes" class="text-xs text-slate-500 italic mt-1.5 hidden"></div>
-            </div>
-            <button onclick="closeEventDetails()" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold p-1">✕</button>
+    <!-- =================================================================== -->
+    <!-- MOBILE DAY AGENDA VIEW (Default on < 640px, hidden on >= 640px)      -->
+    <!-- =================================================================== -->
+    <div id="mobile-day-agenda-container" class="sm:hidden space-y-3">
+        <!-- 6-Day Selector Tabs -->
+        <div class="grid grid-cols-6 gap-1.5 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
+            {% for day in week_days %}
+            <button type="button"
+                    onclick="selectMobileDay({{ day.index }})"
+                    id="mob-day-tab-{{ day.index }}"
+                    class="mob-day-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl border transition relative
+                    {% if day.index == selected_mobile_day_idx %}
+                        bg-[#006a61] text-white border-[#006a61] shadow-sm
+                    {% elif day.is_today %}
+                        bg-teal-50/80 text-[#006a61] border-teal-300
+                    {% else %}
+                        bg-slate-50/70 text-slate-700 border-slate-200/60 hover:bg-slate-100
+                    {% endif %}">
+                <span class="text-[10px] font-bold uppercase opacity-80">{{ day.day_short }}</span>
+                <span class="text-sm font-black leading-tight mt-0.5">{{ day.day_num }}</span>
+                {% if day.slots_count > 0 %}
+                <span class="mt-1 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold
+                    {% if day.index == selected_mobile_day_idx %}bg-white/25 text-white{% else %}bg-teal-100 text-[#006a61]{% endif %}">
+                    {{ day.slots_count }}
+                </span>
+                {% else %}
+                <span class="mt-1 text-[9px] opacity-40">•</span>
+                {% endif %}
+            </button>
+            {% endfor %}
         </div>
 
-        <!-- Quick Status Buttons -->
-        <div class="pt-3 border-t border-slate-100 space-y-2">
-            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">სტატუსის შეცვლა:</div>
-            
-            <form id="status-form" method="POST" action="" class="grid grid-cols-3 gap-2">
+        <!-- Day Panels -->
+        {% for day in week_days %}
+        <div id="mob-day-panel-{{ day.index }}"
+             class="mob-day-panel bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden {% if day.index != selected_mobile_day_idx %}hidden{% endif %}">
+            <!-- Day Banner -->
+            <div class="p-3.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-sm font-black text-slate-900">{{ day.day_name }}, {{ day.day_num }} {{ day.month_short }}</h2>
+                        {% if day.is_today %}
+                        <span class="px-2 py-0.5 rounded-full bg-teal-100 text-[#006a61] text-[10px] font-bold">დღეს</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-0.5">
+                        დაგეგმილია {{ day.slots_count }} ვიზიტი
+                    </p>
+                </div>
+                <button type="button"
+                        onclick="openAddSlotModal('{{ day.date_str }}', '10:00')"
+                        class="px-3 py-1.5 bg-[#006a61] text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1">
+                    <span>+ დამატება</span>
+                </button>
+            </div>
+
+            <!-- Visits List for this Day -->
+            <div class="p-3 space-y-2.5">
+                {% if day.day_slots %}
+                    {% for slot in day.day_slots %}
+                    <div onclick="openSlotPopup(
+                            '{{ slot.id }}',
+                            '{{ slot.beneficiary.id }}',
+                            '{{ slot.beneficiary.full_name|escapejs }}',
+                            '{{ slot.date|date:'Y-m-d' }}',
+                            '{{ slot.start_time|time:'H:i' }}',
+                            '{{ slot.duration_minutes }}',
+                            '{{ slot.therapy_type|escapejs }}',
+                            '{{ slot.status }}',
+                            '{{ slot.notes|default:''|escapejs }}',
+                            '{% if slot.session %}{{ slot.session.id }}{% endif %}',
+                            '{% if slot.series_id %}{{ slot.series_id }}{% endif %}',
+                            '{{ slot.series_total }}',
+                            '{{ slot.series_end_str }}'
+                        )"
+                         class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3
+                         {% if slot.status == 'completed' %}
+                             bg-emerald-50/70 border-emerald-200 text-emerald-950
+                         {% elif slot.status == 'missed' %}
+                             bg-rose-50/70 border-rose-200 text-rose-950
+                         {% else %}
+                             bg-teal-50/50 border-teal-200/90 text-slate-900
+                         {% endif %}">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-xs font-black text-slate-800">
+                                    {{ slot.time_range_display }}
+                                </span>
+                                <span class="text-xs font-bold text-[#006a61] truncate">{{ slot.therapy_type }}</span>
+                                {% if slot.series_id %}
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                                    🔄 სერია ({% if slot.series_total %}{{ slot.series_total }}{% else %}მრავალჯერადი{% endif %})
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-sm font-black text-slate-900 mt-1.5 truncate">
+                                {{ slot.beneficiary.full_name }}
+                            </div>
+                            {% if slot.notes %}
+                            <div class="text-[11px] text-slate-500 mt-0.5 truncate">{{ slot.notes }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="shrink-0 flex flex-col items-end gap-1.5">
+                            {% if slot.status == 'completed' %}
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold">✓ ჩატარდა</span>
+                            {% elif slot.status == 'missed' %}
+                            <span class="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-[10px] font-extrabold">✕ გაცდენა</span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold">⏳ დაგეგმილი</span>
+                            {% endif %}
+                            <span class="text-[10px] font-bold text-slate-400">მართვა →</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="py-6 text-center space-y-2">
+                        <div class="text-xs font-semibold text-slate-400">ამ დღეს ვიზიტები ჯერ არ არის ჩანიშნული</div>
+                    </div>
+                {% endif %}
+
+                <!-- Quick Hour Chips to Add Visit on Mobile -->
+                <div class="pt-3 border-t border-slate-100">
+                    <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                        სწრაფი ჩანიშვნა საათის მიხედვით ({{ day.day_short }}, {{ day.day_num }}):
+                    </span>
+                    <div class="flex flex-wrap gap-1.5">
+                        {% for row in timetable_rows %}
+                        <button type="button"
+                                onclick="openAddSlotModal('{{ day.date_str }}', '{{ row.hour }}')"
+                                class="px-2.5 py-1.5 rounded-lg bg-slate-50 hover:bg-teal-50 text-slate-700 hover:text-[#006a61] border border-slate-200/80 text-[11px] font-bold transition">
+                            + {{ row.hour }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- 6-DAY WEEK TIMETABLE GRID (Desktop default; Scrollable on Mobile)   -->
+    <!-- =================================================================== -->
+    <div id="week-grid-container" class="hidden sm:block bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <div class="min-w-[680px]">
+                <!-- Day Headers Row -->
+                <div class="grid grid-cols-[56px_repeat(6,minmax(0,1fr))] border-b border-slate-200 bg-slate-50/90">
+                    <div class="p-2 text-center text-[10px] font-bold uppercase text-slate-400 flex items-center justify-center border-r border-slate-200/70">
+                        დრო
+                    </div>
+                    {% for day in week_days %}
+                    <div class="py-2.5 px-2 text-center border-r border-slate-200/70 last:border-r-0 {% if day.is_today %}bg-teal-50/70{% endif %}">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <span class="text-[11px] font-bold uppercase tracking-wider {% if day.is_today %}text-[#006a61]{% else %}text-slate-500{% endif %}">
+                                {{ day.day_short }}
+                            </span>
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-black
+                                {% if day.is_today %}bg-[#006a61] text-white shadow-sm{% else %}text-slate-800{% endif %}">
+                                {{ day.day_num }}
+                            </span>
+                            {% if day.slots_count > 0 %}
+                            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-200/70 text-slate-600">
+                                {{ day.slots_count }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Timetable Hours Body -->
+                <div class="divide-y divide-slate-200/70">
+                    {% for row in timetable_rows %}
+                    <div class="grid grid-cols-[56px_repeat(6,minmax(0,1fr))] min-h-[54px] group">
+                        <!-- Time Column -->
+                        <div class="px-1.5 py-2 text-center text-[11px] font-bold text-slate-400 bg-slate-50/50 border-r border-slate-200/70 flex items-start justify-center">
+                            {{ row.hour }}
+                        </div>
+
+                        <!-- 6 Day Cells for this Hour -->
+                        {% for cell in row.row_days %}
+                        <div class="p-1 border-r border-slate-100 last:border-r-0 relative transition hover:bg-slate-50/80 {% if cell.day.is_today %}bg-teal-50/15{% endif %}"
+                             onclick="if(event.target === this) openAddSlotModal('{{ cell.day.date_str }}', '{{ row.hour }}')">
+
+                            <!-- Hover '+' Indicator on Empty Space -->
+                            <button type="button"
+                                    onclick="openAddSlotModal('{{ cell.day.date_str }}', '{{ row.hour }}')"
+                                    class="opacity-0 hover:opacity-100 group-hover:opacity-40 focus:opacity-100 absolute top-1 right-1 w-5 h-5 rounded-md bg-slate-100 hover:bg-[#006a61] text-slate-500 hover:text-white text-xs font-bold flex items-center justify-center transition"
+                                    title="ვიზიტის ჩანიშვნა ({{ cell.day.day_name }}, {{ row.hour }})">+</button>
+
+                            <div class="space-y-1 relative z-10">
+                                {% for slot in cell.slots %}
+                                <div onclick="event.stopPropagation(); openSlotPopup(
+                                        '{{ slot.id }}',
+                                        '{{ slot.beneficiary.id }}',
+                                        '{{ slot.beneficiary.full_name|escapejs }}',
+                                        '{{ slot.date|date:'Y-m-d' }}',
+                                        '{{ slot.start_time|time:'H:i' }}',
+                                        '{{ slot.duration_minutes }}',
+                                        '{{ slot.therapy_type|escapejs }}',
+                                        '{{ slot.status }}',
+                                        '{{ slot.notes|default:''|escapejs }}',
+                                        '{% if slot.session %}{{ slot.session.id }}{% endif %}',
+                                        '{% if slot.series_id %}{{ slot.series_id }}{% endif %}',
+                                        '{{ slot.series_total }}',
+                                        '{{ slot.series_end_str }}'
+                                    )"
+                                     class="px-2 py-1.5 rounded-lg border text-left transition shadow-2xs cursor-pointer select-none hover:shadow-md
+                                    {% if slot.status == 'completed' %}
+                                        bg-emerald-50/95 border-emerald-300 text-emerald-950
+                                    {% elif slot.status == 'missed' %}
+                                        bg-rose-50/90 border-rose-300 text-rose-950 opacity-80
+                                    {% else %}
+                                        bg-teal-50/90 border-teal-300 text-teal-950 hover:bg-teal-100/80
+                                    {% endif %}">
+
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="text-[10px] font-extrabold opacity-80 leading-none">
+                                            {{ slot.start_time|time:"H:i" }}{% if slot.series_id %} 🔄{% endif %}
+                                        </span>
+                                        <span class="text-[10px] font-black leading-none">
+                                            {% if slot.status == 'completed' %}✓{% elif slot.status == 'missed' %}✕{% else %}•{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="font-bold text-[11px] truncate leading-tight mt-0.5" title="{{ slot.beneficiary.full_name }}">
+                                        {{ slot.beneficiary.full_name }}
+                                    </div>
+                                    <div class="text-[9.5px] opacity-75 truncate leading-none mt-0.5">
+                                        {{ slot.therapy_type }}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ======================================================================= -->
+<!-- 1. COMPACT POP-UP CARD FOR EXISTING SLOT ACTIONS                        -->
+<!-- ======================================================================= -->
+<div id="slot-popover" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[60] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-start justify-between gap-2">
+            <div>
+                <span id="pop-time" class="text-[11px] font-extrabold uppercase tracking-wider text-[#006a61] bg-teal-50 px-2.5 py-0.5 rounded-md border border-teal-200">10:00</span>
+                <h3 id="pop-name" class="text-base font-black text-slate-900 mt-1.5">ბენეფიციარი</h3>
+                <p id="pop-type" class="text-xs text-slate-500 font-medium">ოკუპაციური თერაპია</p>
+                <span id="pop-series-badge" class="hidden inline-block mt-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                    🔄 განმეორებადი სერია
+                </span>
+            </div>
+            <button type="button" onclick="closeSlotPopup()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold">✕</button>
+        </div>
+
+        <p id="pop-notes" class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 hidden"></p>
+
+        <!-- Primary Action: Record Session or View Recorded Session -->
+        <div class="pt-1">
+            <a id="pop-record-btn" href="#"
+               class="w-full py-2.5 px-4 bg-[#006a61] hover:bg-[#005049] text-white rounded-xl text-xs font-bold shadow-md shadow-[#006a61]/20 transition flex items-center justify-center gap-1.5">
+                <span>📝 სესიის ჩაწერა</span>
+            </a>
+            <a id="pop-view-session-btn" href="#"
+               class="hidden w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center justify-center gap-1.5">
+                <span>✓ ჩატარებული სესიის ნახვა</span>
+            </a>
+        </div>
+
+        <!-- Quick Status Toggle -->
+        <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100">
+            <form id="pop-form-scheduled" method="post" action="">
                 {% csrf_token %}
-                <input type="hidden" name="status" id="status-input" value="">
-                
-                <button onclick="submitStatus('completed')" type="button" class="py-2 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center">
-                    ✓ მოვიდა
+                <input type="hidden" name="status" value="scheduled">
+                <button type="submit" class="w-full py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-[11px] font-bold text-slate-700 transition">
+                    ⏳ დაგეგმილი
                 </button>
-                <button onclick="submitStatus('missed')" type="button" class="py-2 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center">
-                    ✕ გააცდინა
+            </form>
+            <form id="pop-form-completed" method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="completed">
+                <button type="submit" class="w-full py-2 rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100 text-[11px] font-bold text-emerald-800 transition">
+                    ✓ ჩატარდა
                 </button>
-                <button onclick="submitStatus('scheduled')" type="button" class="py-2 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-center">
-                    ელოდება
+            </form>
+            <form id="pop-form-missed" method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="missed">
+                <button type="submit" class="w-full py-2 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-[11px] font-bold text-rose-800 transition">
+                    ✕ გაცდენა
                 </button>
             </form>
         </div>
 
-        <!-- Action Buttons: Delete, Edit, Session -->
-        <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-            <div class="flex items-center space-x-1.5">
-                <!-- Delete Button -->
-                <button onclick="triggerDelete()" type="button" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl text-xs font-bold transition flex items-center" title="წაშლა">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    წაშლა
+        <!-- Edit & Delete Controls -->
+        <div class="pt-2 border-t border-slate-100 space-y-2">
+            <div class="flex items-center justify-between">
+                <button type="button" onclick="openEditFromPopup()"
+                        class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 py-1">
+                    <span>✏️ დროის / სერიის შეცვლა</span>
                 </button>
 
-                <!-- Edit Button -->
-                <button onclick="openEditModal()" type="button" class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl text-xs font-bold transition flex items-center" title="რედაქტირება">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                    შეცვლა
-                </button>
+                <form id="pop-form-delete-single" method="post" action="" onsubmit="return confirm('წავშალოთ მხოლოდ ეს ერთი ვიზიტი?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_mode" value="single">
+                    <button type="submit" class="text-xs font-bold text-rose-500 hover:text-rose-700 py-1">
+                        🗑️ ამ ვიზიტის წაშლა
+                    </button>
+                </form>
             </div>
 
-            <!-- Session Link -->
-            <a id="pop-session-link" href="#" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm shadow-blue-600/30 flex items-center shrink-0">
-                სესია →
-            </a>
+            <!-- Delete Entire Future Series Option -->
+            <form id="pop-form-delete-series" method="post" action="" class="hidden pt-1 border-t border- dashed border-rose-100"
+                  onsubmit="return confirm('წავშალოთ ეს ვიზიტი და სერიის ყველა მომდევნო ჩანიშვნა?')">
+                {% csrf_token %}
+                <input type="hidden" name="delete_mode" value="series">
+                <button type="submit" class="w-full py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition">
+                    🗑️ მთლიანი სერიის წაშლა (ეს და მომდევნო ვიზიტები)
+                </button>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Hidden Delete Form -->
-<form id="delete-form" method="POST" action="" class="hidden">
-    {% csrf_token %}
-    <input type="hidden" name="delete_mode" id="delete-mode-input" value="single">
-</form>
 
-<!-- Modal: Delete Recurring Choice -->
-<div id="modal-delete-choice" class="fixed inset-0 bg-slate-900/50 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-200 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150">
-        <div class="flex items-center space-x-3 text-rose-600">
-            <div class="p-2 bg-rose-50 rounded-xl">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-            </div>
-            <h3 class="text-base font-black text-slate-900">ვიზიტის წაშლა</h3>
-        </div>
-        <p class="text-xs text-slate-600 font-medium">
-            ეს ვიზიტი განმეორებადი სერიის ნაწილია. როგორ გსურთ წაშლა?
-        </p>
-        <div class="space-y-2 pt-2">
-            <button onclick="submitDelete('single')" type="button" class="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition text-left flex items-center justify-between">
-                <span>მხოლოდ ამ დღის ვიზიტის წაშლა</span>
-                <span class="text-slate-400 font-normal">→</span>
-            </button>
-            <button onclick="submitDelete('series')" type="button" class="w-full py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition text-left flex items-center justify-between">
-                <span>მთელი სერიის წაშლა (მომდევნო კვირებიც)</span>
-                <span class="text-rose-500 font-black">✕</span>
-            </button>
-        </div>
-        <div class="pt-2 text-right border-t border-slate-100">
-            <button onclick="closeDeleteChoice()" type="button" class="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-1.5">
-                გაუქმება
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ==================== MODAL: ADD APPOINTMENT ==================== -->
-<div id="modal-add" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
-    <div class="bg-white rounded-3xl p-5 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 my-auto animate-in fade-in zoom-in duration-150">
+<!-- ======================================================================= -->
+<!-- 2. ADD / EDIT SLOT MODAL (Multi-Month & Multi-Day Recurrence Builder)   -->
+<!-- ======================================================================= -->
+<div id="add-slot-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[60] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 class="text-base font-black text-slate-900">
-                + ვიზიტის ჩანიშვნა განრიგში
-            </h3>
-            <button onclick="closeAddModal()" type="button" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
+            <div>
+                <h2 id="slot-modal-title" class="text-base sm:text-lg font-black text-slate-900">ვიზიტის ჩანიშვნა</h2>
+                <p class="text-[11px] text-slate-500">აირჩიეთ ერთჯერადი ვიზიტი ან გაწერეთ გრაფიკი რამდენიმე თვეზე</p>
+            </div>
+            <button type="button" onclick="closeAddSlotModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm font-bold">✕</button>
         </div>
 
-        <form method="POST" action="{% url 'schedule_add' %}" class="space-y-3.5 text-xs">
+        <form id="slot-modal-form" method="post" action="{% url 'schedule_add' %}" class="space-y-4">
             {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
-            <!-- 1. Beneficiary Select -->
+            <!-- Beneficiary Selector -->
             <div>
-                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">ბავშვი *</label>
-                <select name="beneficiary" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">აირჩიეთ ბავშვი...</option>
+                <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">ბენეფიციარი *</label>
+                <select name="beneficiary" id="modal-beneficiary-select" required
+                        class="w-full p-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold bg-white focus:ring-2 focus:ring-[#006a61] focus:outline-none">
                     {% for b in beneficiaries %}
                     <option value="{{ b.id }}">{{ b.full_name }} ({{ b.age_display }})</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <!-- 2. Date & Time -->
+            <!-- Start Date & Time -->
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">თარიღი *</label>
-                    <input type="date" name="date" id="add-date" value="{{ today_str }}" required class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">საწყისი თარიღი *</label>
+                    <input type="date" name="date" id="modal-date-input" value="{{ today_str }}" required
+                           onchange="onModalStartDateChange()"
+                           class="w-full p-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-[#006a61] focus:outline-none">
                 </div>
                 <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">დაწყების დრო *</label>
-                    <input type="time" name="start_time" id="add-time" value="10:00" required class="w-full p-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">დაწყების დრო *</label>
+                    <input type="time" name="start_time" id="modal-time-input" value="10:00" required
+                           onchange="updateRecurrencePreview()"
+                           class="w-full p-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-[#006a61] focus:outline-none">
                 </div>
             </div>
 
-            <!-- 3. Duration & Therapy Type -->
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">ხანგრძლივობა</label>
-                    <select name="duration_minutes" class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option value="50" selected>50 წუთი</option>
-                        <option value="45">45 წუთი</option>
-                        <option value="40">40 წუთი</option>
-                        <option value="60">60 წუთი</option>
-                        <option value="30">30 წუთი</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">თერაპია</label>
-                    <select name="therapy_type" class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        {% for t in therapy_types %}
-                        <option value="{{ t }}">{{ t }}</option>
+            <!-- Therapy Type & Duration -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="sm:col-span-2">
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">თერაპიის მიმართულება</label>
+                    <select name="therapy_type" id="modal-type-select"
+                            class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white focus:ring-2 focus:ring-[#006a61] focus:outline-none">
+                        {% for t_name in therapy_types %}
+                        <option value="{{ t_name }}">{{ t_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                <div>
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">ხანგრძლივობა (წთ)</label>
+                    <input type="number" name="duration_minutes" id="modal-duration-input" value="50" min="15" max="180" step="5"
+                           class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-[#006a61] focus:outline-none">
+                </div>
             </div>
 
-            <!-- 4. Recurring Checkbox -->
-            <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 flex items-center space-x-2">
-                <input type="checkbox" name="is_recurring" id="is_recurring" class="w-4 h-4 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500">
-                <label for="is_recurring" class="text-xs text-indigo-950 font-semibold cursor-pointer select-none">
-                    განმეორდეს ყოველკვირეულად (მომდევნო 1 თვე / 4 კვირა)
+            <!-- =========================================================== -->
+            <!-- MULTI-MONTH & MULTI-WEEKDAY RECURRENCE BUILDER (Create Mode)-->
+            <!-- =========================================================== -->
+            <div id="modal-recurring-box" class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                        <span>🔄 განრიგის პერიოდი და გამეორება</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-[#006a61] bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                        მრავალთვიანი დაგეგმვა
+                    </span>
+                </div>
+
+                <!-- Recurrence Mode Tabs -->
+                <input type="hidden" name="recurrence_mode" id="recurrence-mode-input" value="single">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-200/70 p-1 rounded-xl">
+                    <button type="button" onclick="setRecurrenceMode('single')" id="rec-tab-single"
+                            class="rec-mode-tab py-1.5 px-2 rounded-lg text-[11px] font-bold transition bg-white text-slate-900 shadow-xs">
+                        ერთჯერადი
+                    </button>
+                    <button type="button" onclick="setRecurrenceMode('months')" id="rec-tab-months"
+                            class="rec-mode-tab py-1.5 px-2 rounded-lg text-[11px] font-bold transition text-slate-600 hover:text-slate-900">
+                        თვეების არჩევა
+                    </button>
+                    <button type="button" onclick="setRecurrenceMode('weeks')" id="rec-tab-weeks"
+                            class="rec-mode-tab py-1.5 px-2 rounded-lg text-[11px] font-bold transition text-slate-600 hover:text-slate-900">
+                        კვირებით
+                    </button>
+                    <button type="button" onclick="setRecurrenceMode('until_date')" id="rec-tab-until_date"
+                            class="rec-mode-tab py-1.5 px-2 rounded-lg text-[11px] font-bold transition text-slate-600 hover:text-slate-900">
+                        თარიღამდე
+                    </button>
+                </div>
+
+                <!-- Panel A: Months Selector (1 to 24 Months) -->
+                <div id="rec-panel-months" class="hidden space-y-2.5 pt-1">
+                    <label class="block text-[11px] font-bold text-slate-700">
+                        რამდენ თვეზე გსურთ განრიგის გაწერა?
+                    </label>
+                    <!-- Quick Month Chips -->
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="selectMonthsCount(1)" data-m="1" class="month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-[#006a61] text-white border-[#006a61]">1 თვე</button>
+                        <button type="button" onclick="selectMonthsCount(2)" data-m="2" class="month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-slate-200 hover:border-teal-400">2 თვე</button>
+                        <button type="button" onclick="selectMonthsCount(3)" data-m="3" class="month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-slate-200 hover:border-teal-400">3 თვე</button>
+                        <button type="button" onclick="selectMonthsCount(4)" data-m="4" class="month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-slate-200 hover:border-teal-400">4 თვე</button>
+                        <button type="button" onclick="selectMonthsCount(6)" data-m="6" class="month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-slate-200 hover:border-teal-400">6 თვე</button>
+                        <button type="button" onclick="selectMonthsCount(9)" data-m="9" class="month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-slate-200 hover:border-teal-400">9 თვე</button>
+                        <button type="button" onclick="selectMonthsCount(12)" data-m="12" class="month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-slate-200 hover:border-teal-400">12 თვე (1 წელი)</button>
+                    </div>
+                    <!-- Custom Month Number Input -->
+                    <div class="flex items-center gap-2 pt-1">
+                        <span class="text-[11px] font-semibold text-slate-500">ან მიუთითეთ თვეების ზუსტი რაოდენობა (1–24):</span>
+                        <input type="number" name="repeat_months" id="repeat-months-input" value="1" min="1" max="24"
+                               oninput="syncMonthButtons(); updateRecurrencePreview();"
+                               class="w-20 p-1.5 text-center rounded-xl border border-slate-300 text-xs font-black text-slate-900 bg-white focus:ring-2 focus:ring-[#006a61] focus:outline-none">
+                        <span class="text-xs font-bold text-slate-700">თვე</span>
+                    </div>
+                </div>
+
+                <!-- Panel B: Weeks Selector (1 to 52 Weeks) -->
+                <div id="rec-panel-weeks" class="hidden space-y-2.5 pt-1">
+                    <label class="block text-[11px] font-bold text-slate-700">
+                        რამდენი კვირის განმავლობაში განმეორდეს?
+                    </label>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="selectWeeksCount(2)" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-teal-50 text-xs font-bold text-slate-700">2 კვ</button>
+                        <button type="button" onclick="selectWeeksCount(4)" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-teal-50 text-xs font-bold text-slate-700">4 კვ</button>
+                        <button type="button" onclick="selectWeeksCount(8)" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-teal-50 text-xs font-bold text-slate-700">8 კვ</button>
+                        <button type="button" onclick="selectWeeksCount(12)" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-teal-50 text-xs font-bold text-slate-700">12 კვ</button>
+                        <button type="button" onclick="selectWeeksCount(24)" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-teal-50 text-xs font-bold text-slate-700">24 კვ</button>
+                        <button type="button" onclick="selectWeeksCount(52)" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-teal-50 text-xs font-bold text-slate-700">52 კვ</button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-semibold text-slate-500">კვირების რაოდენობა:</span>
+                        <input type="number" name="repeat_weeks" id="repeat-weeks-input" value="4" min="1" max="104"
+                               oninput="updateRecurrencePreview()"
+                               class="w-20 p-1.5 text-center rounded-xl border border-slate-300 text-xs font-black text-slate-900 bg-white focus:ring-2 focus:ring-[#006a61] focus:outline-none">
+                        <span class="text-xs font-bold text-slate-700">კვირა</span>
+                    </div>
+                </div>
+
+                <!-- Panel C: End Date Selector -->
+                <div id="rec-panel-until_date" class="hidden space-y-1.5 pt-1">
+                    <label class="block text-[11px] font-bold text-slate-700">
+                        აირჩიეთ საბოლოო თარიღი (რომელ რიცხვამდე გაგრძელდეს სერია):
+                    </label>
+                    <input type="date" name="repeat_until" id="repeat-until-input"
+                           onchange="updateRecurrencePreview()"
+                           class="w-full p-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white focus:ring-2 focus:ring-[#006a61] focus:outline-none">
+                </div>
+
+                <!-- Multi-Weekday Checkboxes (Mon..Sat) -->
+                <div class="pt-2 border-t border-slate-200/80">
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1.5">
+                        კვირის დღეები (შეგიძლიათ მონიშნოთ რამდენიმე დღე ერთდროულად):
+                    </label>
+                    <div class="grid grid-cols-6 gap-1.5">
+                        <label class="weekday-pill cursor-pointer select-none">
+                            <input type="checkbox" name="weekdays" value="0" class="sr-only weekday-cb" onchange="updateWeekdayPills(); updateRecurrencePreview();">
+                            <div class="weekday-box py-2 rounded-xl border border-slate-200 bg-white text-center text-xs font-bold text-slate-700 transition">ორშ</div>
+                        </label>
+                        <label class="weekday-pill cursor-pointer select-none">
+                            <input type="checkbox" name="weekdays" value="1" class="sr-only weekday-cb" onchange="updateWeekdayPills(); updateRecurrencePreview();">
+                            <div class="weekday-box py-2 rounded-xl border border-slate-200 bg-white text-center text-xs font-bold text-slate-700 transition">სამ</div>
+                        </label>
+                        <label class="weekday-pill cursor-pointer select-none">
+                            <input type="checkbox" name="weekdays" value="2" class="sr-only weekday-cb" onchange="updateWeekdayPills(); updateRecurrencePreview();">
+                            <div class="weekday-box py-2 rounded-xl border border-slate-200 bg-white text-center text-xs font-bold text-slate-700 transition">ოთხ</div>
+                        </label>
+                        <label class="weekday-pill cursor-pointer select-none">
+                            <input type="checkbox" name="weekdays" value="3" class="sr-only weekday-cb" onchange="updateWeekdayPills(); updateRecurrencePreview();">
+                            <div class="weekday-box py-2 rounded-xl border border-slate-200 bg-white text-center text-xs font-bold text-slate-700 transition">ხუთ</div>
+                        </label>
+                        <label class="weekday-pill cursor-pointer select-none">
+                            <input type="checkbox" name="weekdays" value="4" class="sr-only weekday-cb" onchange="updateWeekdayPills(); updateRecurrencePreview();">
+                            <div class="weekday-box py-2 rounded-xl border border-slate-200 bg-white text-center text-xs font-bold text-slate-700 transition">პარ</div>
+                        </label>
+                        <label class="weekday-pill cursor-pointer select-none">
+                            <input type="checkbox" name="weekdays" value="5" class="sr-only weekday-cb" onchange="updateWeekdayPills(); updateRecurrencePreview();">
+                            <div class="weekday-box py-2 rounded-xl border border-slate-200 bg-white text-center text-xs font-bold text-slate-700 transition">შაბ</div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Live Calculated Summary Banner -->
+                <div id="recurrence-live-summary" class="p-2.5 rounded-xl bg-teal-50/90 border border-teal-200 text-[11px] text-teal-950 font-medium leading-relaxed">
+                    შეიქმნება <strong class="font-black text-[#006a61]">1 ვიზიტი</strong>
+                </div>
+            </div>
+
+            <!-- Update Series Option (Only shown when editing an existing recurring slot) -->
+            <div id="modal-update-series-box" class="hidden p-3 rounded-xl bg-amber-50/80 border border-amber-200">
+                <label class="flex items-start space-x-2.5 cursor-pointer">
+                    <input type="checkbox" name="update_series" id="modal-update-series-input" checked
+                           class="mt-0.5 w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500">
+                    <div>
+                        <span class="block text-xs font-bold text-amber-900">🔄 შევცვალოთ სერიის ყველა მომდევნო ვიზიტიც</span>
+                        <span class="block text-[11px] text-amber-700 mt-0.5">განახლდება დრო და თერაპიის ტიპი ამ სერიის მომავალ ჩანიშვნებზე</span>
+                    </div>
                 </label>
             </div>
 
-            <!-- 5. Notes -->
             <div>
-                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">შენიშვნა (არასავალდებულო)</label>
-                <input type="text" name="notes" placeholder="მაგ. მშობელთან გასაუბრება ბოლოს" class="w-full p-2.5 rounded-xl border border-slate-200 font-normal text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">შენიშვნა (არასავალდებულო)</label>
+                <input type="text" name="notes" id="modal-notes-input" placeholder="მაგ: ოთახი #2, სენსორული დარბაზი..."
+                       class="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#006a61] focus:outline-none">
             </div>
 
-            <!-- Form Actions -->
-            <div class="pt-3 flex items-center justify-end space-x-2 border-t border-slate-100">
-                <button type="button" onclick="closeAddModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">
+            <div class="pt-2 flex items-center justify-end space-x-2 border-t border-slate-100">
+                <button type="button" onclick="closeAddSlotModal()"
+                        class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">
                     გაუქმება
                 </button>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shadow-sm shadow-blue-600/30">
-                    განრიგში დამატება
+                <button type="submit" id="slot-modal-submit"
+                        class="px-5 py-2.5 rounded-xl bg-[#006a61] hover:bg-[#005049] text-white text-xs font-bold shadow-md shadow-[#006a61]/20 transition">
+                    ჩანიშვნა
                 </button>
             </div>
         </form>
     </div>
 </div>
+{% endblock %}
 
-<!-- ==================== MODAL: EDIT APPOINTMENT ==================== -->
-<div id="modal-edit" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
-    <div class="bg-white rounded-3xl p-5 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 my-auto animate-in fade-in zoom-in duration-150">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 class="text-base font-black text-slate-900">
-                ✏️ ვიზიტის რედაქტირება
-            </h3>
-            <button onclick="closeEditModal()" type="button" class="text-slate-400 hover:text-slate-600 font-bold p-1">✕</button>
-        </div>
-
-        <form id="edit-form" method="POST" action="" class="space-y-3.5 text-xs">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-
-            <!-- 1. Beneficiary Select -->
-            <div>
-                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">ბავშვი *</label>
-                <select name="beneficiary" id="edit-beneficiary" required class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    {% for b in beneficiaries %}
-                    <option value="{{ b.id }}">{{ b.full_name }} ({{ b.age_display }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- 2. Date & Time -->
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">თარიღი *</label>
-                    <input type="date" name="date" id="edit-date" required class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">დაწყების დრო *</label>
-                    <input type="time" name="start_time" id="edit-time" required class="w-full p-2.5 rounded-xl border border-slate-200 font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-            </div>
-
-            <!-- 3. Duration & Therapy Type -->
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">ხანგრძლივობა</label>
-                    <select name="duration_minutes" id="edit-duration" class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option value="50">50 წუთი</option>
-                        <option value="45">45 წუთი</option>
-                        <option value="40">40 წუთი</option>
-                        <option value="60">60 წუთი</option>
-                        <option value="30">30 წუთი</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">თერაპია</label>
-                    <select name="therapy_type" id="edit-type" class="w-full p-2.5 rounded-xl border border-slate-200 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        {% for t in therapy_types %}
-                        <option value="{{ t }}">{{ t }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <!-- 4. Recurring Series Sync Checkbox (shown only if slot is part of series) -->
-            <div id="edit-series-option" class="p-3 bg-indigo-50/80 rounded-xl border border-indigo-100 flex items-center space-x-2 hidden">
-                <input type="checkbox" name="update_series" id="edit-update-series" class="w-4 h-4 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500">
-                <label for="edit-update-series" class="text-xs text-indigo-950 font-semibold cursor-pointer select-none">
-                    გავრცელდეს სერიის მომდევნო ვიზიტებზეც (დრო, ხანგრძლივობა, შენიშვნა)
-                </label>
-            </div>
-
-            <!-- 5. Notes -->
-            <div>
-                <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">შენიშვნა (არასავალდებულო)</label>
-                <input type="text" name="notes" id="edit-notes" placeholder="მაგ. მშობელთან გასაუბრება" class="w-full p-2.5 rounded-xl border border-slate-200 font-normal text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            </div>
-
-            <!-- Form Actions -->
-            <div class="pt-3 flex items-center justify-end space-x-2 border-t border-slate-100">
-                <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 transition">
-                    გაუქმება
-                </button>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shadow-sm shadow-blue-600/30">
-                    შენახვა
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
+{% block extra_scripts %}
 <script>
-    let currentEvent = null;
+    let currentPopupSlot = null;
+    const DAY_NAMES_SHORT = ['ორშ', 'სამ', 'ოთხ', 'ხუთ', 'პარ', 'შაბ', 'კვ'];
 
-    function openAddModal(dateStr, timeStr) {
-        if (dateStr) document.getElementById('add-date').value = dateStr;
-        if (timeStr) document.getElementById('add-time').value = timeStr;
-        document.getElementById('modal-add').classList.remove('hidden');
-    }
+    // ── Mobile View Mode Switcher (Day Agenda vs 6-Day Week Grid) ─────────
+    function setMobileScheduleMode(mode) {
+        const dayContainer = document.getElementById('mobile-day-agenda-container');
+        const weekContainer = document.getElementById('week-grid-container');
+        const btnDay = document.getElementById('btn-mobile-day-view');
+        const btnWeek = document.getElementById('btn-mobile-week-view');
 
-    function closeAddModal() {
-        document.getElementById('modal-add').classList.add('hidden');
-    }
-
-    function openEventDetails(eventObj) {
-        currentEvent = eventObj;
-        document.getElementById('pop-name').innerText = eventObj.name;
-        document.getElementById('pop-time').innerText = eventObj.timeRange;
-        document.getElementById('pop-type').innerText = eventObj.therapyType;
-
-        const badgeEl = document.getElementById('pop-series-badge');
-        if (eventObj.hasSeries) {
-            badgeEl.classList.remove('hidden');
+        if (mode === 'week') {
+            dayContainer.classList.add('hidden');
+            weekContainer.classList.remove('hidden');
+            btnWeek.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition bg-white text-[#006a61] shadow-sm';
+            btnDay.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition text-slate-600';
         } else {
-            badgeEl.classList.add('hidden');
+            dayContainer.classList.remove('hidden');
+            weekContainer.classList.add('hidden');
+            btnDay.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition bg-white text-[#006a61] shadow-sm';
+            btnWeek.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition text-slate-600';
+        }
+    }
+
+    function selectMobileDay(dayIdx) {
+        document.querySelectorAll('.mob-day-panel').forEach(el => el.classList.add('hidden'));
+        const targetPanel = document.getElementById('mob-day-panel-' + dayIdx);
+        if (targetPanel) targetPanel.classList.remove('hidden');
+
+        document.querySelectorAll('.mob-day-tab').forEach((tab, idx) => {
+            if (idx === dayIdx) {
+                tab.className = 'mob-day-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl border transition relative bg-[#006a61] text-white border-[#006a61] shadow-sm';
+            } else {
+                tab.className = 'mob-day-tab flex flex-col items-center justify-center py-2 px-1 rounded-xl border transition relative bg-slate-50/70 text-slate-700 border-slate-200/60 hover:bg-slate-100';
+            }
+        });
+    }
+
+    // ── Helper: Parse YYYY-MM-DD into local Date ──────────────────────────
+    function parseIsoDate(str) {
+        if (!str) return null;
+        const parts = str.split('-').map(Number);
+        if (parts.length !== 3) return null;
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    function formatGeoDate(d) {
+        if (!d) return '';
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${dd}.${mm}.${yyyy}`;
+    }
+
+    function formatIsoDate(d) {
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // JS Monday-based weekday (0=Mon .. 6=Sun)
+    function getMonWeekday(d) {
+        return (d.getDay() + 6) % 7;
+    }
+
+    function addCalendarMonthsJs(sourceDate, months) {
+        const totalMonths = sourceDate.getMonth() + months;
+        const targetYear = sourceDate.getFullYear() + Math.floor(totalMonths / 12);
+        const targetMonth = ((totalMonths % 12) + 12) % 12;
+        const maxDayInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+        const day = Math.min(sourceDate.getDate(), maxDayInTargetMonth);
+        return new Date(targetYear, targetMonth, day);
+    }
+
+    // ── Recurrence Builder Controls ───────────────────────────────────────
+    function setRecurrenceMode(mode) {
+        document.getElementById('recurrence-mode-input').value = mode;
+        const modes = ['single', 'months', 'weeks', 'until_date'];
+        modes.forEach(m => {
+            const tab = document.getElementById('rec-tab-' + m);
+            const panel = document.getElementById('rec-panel-' + m);
+            if (tab) {
+                if (m === mode) {
+                    tab.className = 'rec-mode-tab py-1.5 px-2 rounded-lg text-[11px] font-bold transition bg-white text-[#006a61] shadow-xs';
+                } else {
+                    tab.className = 'rec-mode-tab py-1.5 px-2 rounded-lg text-[11px] font-bold transition text-slate-600 hover:text-slate-900';
+                }
+            }
+            if (panel) {
+                if (m === mode) panel.classList.remove('hidden');
+                else panel.classList.add('hidden');
+            }
+        });
+
+        // Default repeat_until date to +2 months if empty
+        if (mode === 'until_date') {
+            const untilInput = document.getElementById('repeat-until-input');
+            const startD = parseIsoDate(document.getElementById('modal-date-input').value) || new Date();
+            if (!untilInput.value) {
+                const defaultEnd = addCalendarMonthsJs(startD, 2);
+                defaultEnd.setDate(defaultEnd.getDate() - 1);
+                untilInput.value = formatIsoDate(defaultEnd);
+            }
+        }
+        updateRecurrencePreview();
+    }
+
+    function selectMonthsCount(m) {
+        document.getElementById('repeat-months-input').value = m;
+        syncMonthButtons();
+        updateRecurrencePreview();
+    }
+
+    function syncMonthButtons() {
+        const val = parseInt(document.getElementById('repeat-months-input').value || '1', 10);
+        document.querySelectorAll('.month-preset-btn').forEach(btn => {
+            const bm = parseInt(btn.getAttribute('data-m'), 10);
+            if (bm === val) {
+                btn.className = 'month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-[#006a61] text-white border-[#006a61] shadow-xs';
+            } else {
+                btn.className = 'month-preset-btn px-2.5 py-1.5 rounded-xl border text-xs font-bold transition bg-white text-slate-700 border-slate-200 hover:border-teal-400';
+            }
+        });
+    }
+
+    function selectWeeksCount(w) {
+        document.getElementById('repeat-weeks-input').value = w;
+        updateRecurrencePreview();
+    }
+
+    function updateWeekdayPills() {
+        document.querySelectorAll('.weekday-pill').forEach(lbl => {
+            const cb = lbl.querySelector('.weekday-cb');
+            const box = lbl.querySelector('.weekday-box');
+            if (cb.checked) {
+                box.className = 'weekday-box py-2 rounded-xl border border-[#006a61] bg-[#006a61] text-center text-xs font-extrabold text-white shadow-xs transition';
+            } else {
+                box.className = 'weekday-box py-2 rounded-xl border border-slate-200 bg-white text-center text-xs font-bold text-slate-700 hover:border-teal-300 transition';
+            }
+        });
+    }
+
+    function onModalStartDateChange() {
+        const dStr = document.getElementById('modal-date-input').value;
+        const d = parseIsoDate(dStr);
+        if (d) {
+            const wd = Math.min(getMonWeekday(d), 5);
+            const checkedCbs = Array.from(document.querySelectorAll('.weekday-cb:checked'));
+            if (checkedCbs.length <= 1) {
+                document.querySelectorAll('.weekday-cb').forEach(cb => {
+                    cb.checked = (parseInt(cb.value, 10) === wd);
+                });
+                updateWeekdayPills();
+            }
+        }
+        updateRecurrencePreview();
+    }
+
+    function updateRecurrencePreview() {
+        const summaryEl = document.getElementById('recurrence-live-summary');
+        if (!summaryEl) return;
+
+        const startD = parseIsoDate(document.getElementById('modal-date-input').value);
+        const timeStr = document.getElementById('modal-time-input').value || '10:00';
+        const mode = document.getElementById('recurrence-mode-input').value;
+
+        if (!startD) {
+            summaryEl.innerHTML = 'აირჩიეთ საწყისი თარიღი';
+            return;
+        }
+
+        let selectedWds = Array.from(document.querySelectorAll('.weekday-cb:checked')).map(cb => parseInt(cb.value, 10));
+        if (selectedWds.length === 0) {
+            selectedWds = [Math.min(getMonWeekday(startD), 5)];
+        }
+        const wdNames = selectedWds.map(w => DAY_NAMES_SHORT[w]).join(', ');
+
+        if (mode === 'single' && selectedWds.length === 1 && selectedWds[0] === getMonWeekday(startD)) {
+            summaryEl.innerHTML = `შეიქმნება <strong class="font-black text-[#006a61]">1 ერთჯერადი ვიზიტი</strong> (${formatGeoDate(startD)}, ${timeStr}).`;
+            return;
+        }
+
+        let endD = new Date(startD);
+        let periodDesc = '';
+
+        if (mode === 'single') {
+            const monOffset = getMonWeekday(startD);
+            endD = new Date(startD);
+            endD.setDate(startD.getDate() + (5 - monOffset));
+            periodDesc = 'მიმდინარე კვირაში';
+        } else if (mode === 'months') {
+            let mCount = parseInt(document.getElementById('repeat-months-input').value || '1', 10);
+            mCount = Math.max(1, Math.min(24, mCount));
+            endD = addCalendarMonthsJs(startD, mCount);
+            endD.setDate(endD.getDate() - 1);
+            periodDesc = `${mCount} თვე`;
+        } else if (mode === 'weeks') {
+            let wCount = parseInt(document.getElementById('repeat-weeks-input').value || '4', 10);
+            wCount = Math.max(1, Math.min(104, wCount));
+            endD = new Date(startD);
+            endD.setDate(startD.getDate() + (wCount * 7) - 1);
+            periodDesc = `${wCount} კვირა`;
+        } else if (mode === 'until_date') {
+            const uDate = parseIsoDate(document.getElementById('repeat-until-input').value);
+            if (uDate && uDate >= startD) {
+                endD = uDate;
+            }
+            periodDesc = `${formatGeoDate(endD)}-მდე`;
+        }
+
+        let count = 0;
+        let lastMatch = startD;
+        const cur = new Date(startD);
+        while (cur <= endD && count < 500) {
+            if (selectedWds.includes(getMonWeekday(cur))) {
+                count++;
+                lastMatch = new Date(cur);
+            }
+            cur.setDate(cur.getDate() + 1);
+        }
+        if (count === 0) count = 1;
+
+        summaryEl.innerHTML = `შეიქმნება <strong class="font-black text-[#006a61]">${count} ვიზიტი</strong> • დღეები: <strong>${wdNames}</strong> (${timeStr}) • პერიოდი: <strong>${formatGeoDate(startD)} — ${formatGeoDate(lastMatch)}</strong> (${periodDesc})`;
+    }
+
+    // ── Open Add Slot Modal (Create Mode) ─────────────────────────────────
+    function openAddSlotModal(dateStr, timeStr) {
+        const form = document.getElementById('slot-modal-form');
+        form.action = "{% url 'schedule_add' %}";
+        document.getElementById('slot-modal-title').innerText = 'ვიზიტის ჩანიშვნა';
+        document.getElementById('slot-modal-submit').innerText = 'ჩანიშვნა';
+        document.getElementById('modal-date-input').value = dateStr;
+        document.getElementById('modal-time-input').value = timeStr;
+        document.getElementById('modal-duration-input').value = 50;
+        document.getElementById('modal-notes-input').value = '';
+        document.getElementById('modal-recurring-box').classList.remove('hidden');
+        document.getElementById('modal-update-series-box').classList.add('hidden');
+
+        // Pre-select the weekday corresponding to dateStr
+        const d = parseIsoDate(dateStr);
+        const wd = d ? Math.min(getMonWeekday(d), 5) : 0;
+        document.querySelectorAll('.weekday-cb').forEach(cb => {
+            cb.checked = (parseInt(cb.value, 10) === wd);
+        });
+        updateWeekdayPills();
+        setRecurrenceMode('single');
+
+        document.getElementById('add-slot-modal').classList.remove('hidden');
+    }
+
+    function closeAddSlotModal() {
+        document.getElementById('add-slot-modal').classList.add('hidden');
+    }
+
+    // ── Open Slot Action Pop-up ───────────────────────────────────────────
+    function openSlotPopup(id, benId, benName, dateStr, timeStr, duration, therapyType, status, notes, sessionId, seriesId, seriesTotal, seriesEndStr) {
+        currentPopupSlot = { id, benId, benName, dateStr, timeStr, duration, therapyType, status, notes, sessionId, seriesId, seriesTotal, seriesEndStr };
+
+        document.getElementById('pop-time').innerText = `${dateStr} • ${timeStr} (${duration} წთ)`;
+        document.getElementById('pop-name').innerText = benName;
+        document.getElementById('pop-type').innerText = therapyType;
+
+        const seriesBadge = document.getElementById('pop-series-badge');
+        const deleteSeriesForm = document.getElementById('pop-form-delete-series');
+        if (seriesId) {
+            let badgeText = '🔄 განმეორებადი სერია';
+            if (seriesTotal && parseInt(seriesTotal, 10) > 0) {
+                badgeText += ` (სულ ${seriesTotal} ვიზიტი`;
+                if (seriesEndStr) badgeText += `, ${seriesEndStr}-მდე`;
+                badgeText += ')';
+            }
+            seriesBadge.innerText = badgeText;
+            seriesBadge.classList.remove('hidden');
+            deleteSeriesForm.action = `/schedule/${id}/delete/`;
+            deleteSeriesForm.classList.remove('hidden');
+        } else {
+            seriesBadge.classList.add('hidden');
+            deleteSeriesForm.classList.add('hidden');
         }
 
         const notesEl = document.getElementById('pop-notes');
-        if (eventObj.notes && eventObj.notes.trim() !== "") {
-            notesEl.innerText = eventObj.notes;
+        if (notes && notes.trim() !== '') {
+            notesEl.innerText = notes;
             notesEl.classList.remove('hidden');
         } else {
             notesEl.classList.add('hidden');
         }
 
-        document.getElementById('status-form').action = "/schedule/" + eventObj.id + "/status/";
-        document.getElementById('delete-form').action = "/schedule/" + eventObj.id + "/delete/";
-        document.getElementById('pop-session-link').href = eventObj.sessionUrl;
-
-        document.getElementById('popover-event').classList.remove('hidden');
-    }
-
-    function closeEventDetails() {
-        document.getElementById('popover-event').classList.add('hidden');
-    }
-
-    function submitStatus(status) {
-        document.getElementById('status-input').value = status;
-        document.getElementById('status-form').submit();
-    }
-
-    function triggerDelete() {
-        if (!currentEvent) return;
-        if (currentEvent.hasSeries) {
-            closeEventDetails();
-            document.getElementById('modal-delete-choice').classList.remove('hidden');
+        const recBtn = document.getElementById('pop-record-btn');
+        const viewBtn = document.getElementById('pop-view-session-btn');
+        if (sessionId) {
+            recBtn.classList.add('hidden');
+            viewBtn.classList.remove('hidden');
+            viewBtn.href = `/sessions/${sessionId}/`;
         } else {
-            if (confirm('წაიშალოს ეს ჩანაწერი განრიგიდან?')) {
-                submitDelete('single');
-            }
-        }
-    }
-
-    function closeDeleteChoice() {
-        document.getElementById('modal-delete-choice').classList.add('hidden');
-    }
-
-    function submitDelete(mode) {
-        if (!currentEvent) return;
-        document.getElementById('delete-form').action = "/schedule/" + currentEvent.id + "/delete/";
-        document.getElementById('delete-mode-input').value = mode;
-        document.getElementById('delete-form').submit();
-    }
-
-    function openEditModal() {
-        if (!currentEvent) return;
-        closeEventDetails();
-        
-        document.getElementById('edit-form').action = "/schedule/" + currentEvent.id + "/edit/";
-        document.getElementById('edit-beneficiary').value = currentEvent.beneficiaryId;
-        document.getElementById('edit-date').value = currentEvent.date;
-        document.getElementById('edit-time').value = currentEvent.startTime;
-        document.getElementById('edit-duration').value = currentEvent.duration;
-        document.getElementById('edit-type').value = currentEvent.therapyType;
-        document.getElementById('edit-notes').value = currentEvent.notes || "";
-
-        const seriesOptionEl = document.getElementById('edit-series-option');
-        const seriesCheckbox = document.getElementById('edit-update-series');
-        if (currentEvent.hasSeries) {
-            seriesOptionEl.classList.remove('hidden');
-            seriesCheckbox.checked = false;
-        } else {
-            seriesOptionEl.classList.add('hidden');
-            seriesCheckbox.checked = false;
+            viewBtn.classList.add('hidden');
+            recBtn.classList.remove('hidden');
+            recBtn.href = `/beneficiaries/${benId}/sessions/new/?slot_id=${id}`;
         }
 
-        document.getElementById('modal-edit').classList.remove('hidden');
+        document.getElementById('pop-form-scheduled').action = `/schedule/${id}/status/`;
+        document.getElementById('pop-form-completed').action = `/schedule/${id}/status/`;
+        document.getElementById('pop-form-missed').action = `/schedule/${id}/status/`;
+        document.getElementById('pop-form-delete-single').action = `/schedule/${id}/delete/`;
+
+        document.getElementById('slot-popover').classList.remove('hidden');
     }
 
-    function closeEditModal() {
-        document.getElementById('modal-edit').classList.add('hidden');
+    function closeSlotPopup() {
+        document.getElementById('slot-popover').classList.add('hidden');
+    }
+
+    function openEditFromPopup() {
+        if (!currentPopupSlot) return;
+        closeSlotPopup();
+
+        const s = currentPopupSlot;
+        const form = document.getElementById('slot-modal-form');
+        form.action = `/schedule/${s.id}/edit/`;
+        document.getElementById('slot-modal-title').innerText = 'ვიზიტის რედაქტირება';
+        document.getElementById('slot-modal-submit').innerText = 'ცვლილების შენახვა';
+
+        document.getElementById('modal-beneficiary-select').value = s.benId;
+        document.getElementById('modal-date-input').value = s.dateStr;
+        document.getElementById('modal-time-input').value = s.timeStr;
+        document.getElementById('modal-duration-input').value = s.duration;
+        document.getElementById('modal-type-select').value = s.therapyType;
+        document.getElementById('modal-notes-input').value = s.notes || '';
+
+        document.getElementById('modal-recurring-box').classList.add('hidden');
+        const updateSeriesBox = document.getElementById('modal-update-series-box');
+        if (s.seriesId) {
+            updateSeriesBox.classList.remove('hidden');
+            document.getElementById('modal-update-series-input').checked = true;
+        } else {
+            updateSeriesBox.classList.add('hidden');
+        }
+
+        document.getElementById('add-slot-modal').classList.remove('hidden');
     }
 </script>
 {% endblock %}
