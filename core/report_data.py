@@ -486,8 +486,8 @@ def build_report_context(report):
         "parent_name": getattr(beneficiary, "parent_name", ""),
         "parent_phone": getattr(beneficiary, "parent_phone", ""),
         "therapist_name": therapist_name,
-        "therapist_title": therapist.title if therapist else "ოკუპაციური თერაპევტი",
-        "clinic_name": therapist.clinic_name if therapist else "ოკუპაციური თერაპიის ცენტრი",
+        "therapist_title": therapist.title if (therapist and therapist.title) else "ოკუპაციური თერაპევტი",
+        "clinic_name": therapist.clinic_name if (therapist and therapist.clinic_name) else "",
         "license_number": therapist.license_number if therapist and therapist.license_number else "",
         "doc_status": "დამტკიცებული ვერსია" if report.is_finalized else "სამუშაო ვერსია",
         # Therapist-editable narrative sections
