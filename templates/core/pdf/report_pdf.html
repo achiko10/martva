@@ -102,9 +102,14 @@
                     <div class="text-[10px] text-slate-500">გაცდენა: {{ missed_slots }}</div>
                 </div>
                 <div class="rounded-xl border border-slate-200 p-3 text-center">
-                    <div class="text-[9px] font-bold uppercase text-slate-400">პოზიტიური რეგულაცია</div>
+                    <div class="text-[9px] font-bold uppercase text-slate-400">
+                        {% if reg_improved > 0 %}პოზიტიური რეგულაცია{% elif reg_stable_optimal > 0 %}ოპტიმალური რეგულაცია{% else %}რეგულაციის ეფექტი{% endif %}
+                    </div>
                     <div class="text-xl font-black text-emerald-700">{{ reg_positive_pct }}%</div>
-                    <div class="text-[10px] text-slate-500">↑ {{ reg_improved }} • ● {{ reg_stable_optimal }} • ↓ {{ reg_worsened }}</div>
+                    <div class="text-[10px] text-slate-500">
+                        {% if reg_improved > 0 %}↑ გაუმჯობესდა: {{ reg_improved }}{% else %}● შენარჩუნდა: {{ reg_stable_optimal }}{% endif %}
+                        {% if reg_worsened > 0 %} • ↓ {{ reg_worsened }}{% endif %}
+                    </div>
                 </div>
                 <div class="rounded-xl border border-slate-200 p-3 text-center col-span-2 sm:col-span-1">
                     <div class="text-[9px] font-bold uppercase text-slate-400">დამოუკიდებლობის ინდექსი</div>
@@ -306,8 +311,18 @@
                                         {% else %}<div class="text-center text-slate-300">—</div>{% endif %}
                                     </td>
                                     <td class="p-2">
-                                        <div class="text-center font-black {% if g.tone == 'emerald' %}text-emerald-700{% elif g.tone == 'amber' %}text-amber-700{% else %}text-rose-700{% endif %}">{{ g.pct }}%</div>
-                                        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full {% if g.tone == 'emerald' %}bg-emerald-500{% elif g.tone == 'amber' %}bg-amber-500{% else %}bg-rose-500{% endif %}" style="width: {{ g.pct }}%"></div></div>
+                                        <div class="text-center font-black {% if g.tone == 'emerald' %}text-emerald-700{% elif g.tone == 'amber' %}text-amber-700{% elif g.tone == 'rose' %}text-rose-700{% else %}text-slate-500{% endif %}">
+                                            {{ g.pct }}%
+                                        </div>
+                                        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                            <div class="h-full {% if g.tone == 'emerald' %}bg-emerald-500{% elif g.tone == 'amber' %}bg-amber-500{% elif g.tone == 'rose' %}bg-rose-500{% else %}bg-slate-300{% endif %}" style="width: {{ g.pct }}%"></div>
+                                        </div>
+                                        <div class="text-[8.5px] text-center text-slate-400 mt-0.5 whitespace-nowrap">
+                                            {% if g.progress_status == 'achieved' %}მიღწეულია
+                                            {% elif g.progress_status == 'in_progress' %}პროგრესში
+                                            {% elif g.progress_status == 'not_measured' %}არ გაზომილა
+                                            {% else %}საწყისი ნიშნული{% endif %}
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}

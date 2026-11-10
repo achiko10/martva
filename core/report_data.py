@@ -335,6 +335,16 @@ def aggregate_month(beneficiary, year, month):
         prompts = Counter(r.prompt_level for r in recs if r.prompt_level)
         month_delta = (month_end - month_start) if (month_start is not None and month_end is not None) else None
         pct = g.progress_percentage or 0
+        progress_status = "not_evaluated"
+        if not recs:
+            progress_status = "not_measured"
+        elif g.progress_percentage >= 100:
+            progress_status = "achieved"
+        elif g.progress_percentage > 0:
+            progress_status = "in_progress"
+        else:
+            progress_status = "baseline"
+
         goals.append({
             "id": g.id,
             "domain": g.get_domain_display(),
@@ -353,8 +363,9 @@ def aggregate_month(beneficiary, year, month):
             "spark": spark,
             "prompt": prompts.most_common(1)[0][0] if prompts else "",
             "pct": pct,
+            "progress_status": progress_status,
             "target_date": g.target_date.strftime("%d.%m.%Y") if g.target_date else "",
-            "tone": "emerald" if pct >= 70 else ("amber" if pct >= 30 else "rose"),
+            "tone": "emerald" if pct >= 70 else ("amber" if pct >= 30 else "slate" if pct == 0 else "rose"),
         })
 
     # ── Outcomes, challenges, notes ─────────────────────────────────────
