@@ -152,6 +152,16 @@ def generate_monthly_report_content(beneficiary, year, month):
             s3.append("დახმარების დონეების განაწილება: " + _join(
                 [f"{r['label']} — {r['count']}x ({r['pct']}%)" for r in agg["assist_rows"]], "; ") + ".")
 
+    # ── Section 7: Clinical Results & Functional Outcomes (შედეგი) ──────
+    s7 = []
+    if agg["findings"]:
+        s7.extend(agg["findings"])
+    else:
+        if agg["outcomes"]:
+            s7.append("მიღწეული ადაპტური შედეგები: " + _join([f"„{o['name']}“ ({o['count']} სესიაზე)" for o in agg["outcomes"]], "; ") + ".")
+        if agg["overall_index"] is not None:
+            s7.append(f"დამოუკიდებლობის საერთო მაჩვენებელი: {agg['overall_index']:.2f}/6 — {agg['overall_index_label']}.")
+
     # ── Section 8: Outcomes, challenges & therapist observations ───────
     s8 = []
     if agg["outcomes"]:
@@ -224,6 +234,7 @@ def generate_monthly_report_content(beneficiary, year, month):
         "section_1_directions": "\n".join(s1),
         "section_2_goals": "\n".join(s2),
         "section_3_work_performed": "\n".join(s3) if s3 else "მიზნების დინამიკა იხილეთ ინდივიდუალურ გეგმაში.",
+        "section_7_functional_changes": "\n".join(s7),
         "section_8_challenges": "\n".join(s8),
         "section_9_recommendations": "\n".join(s9),
         "section_10_next_goals": "\n".join(s10),

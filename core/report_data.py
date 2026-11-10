@@ -505,6 +505,7 @@ def build_report_context(report):
         "section1_paragraphs": text_to_paragraphs(report.section_1_directions, legacy_zone_prefixes),
         "section2_paragraphs": text_to_paragraphs(report.section_2_goals),
         "section3_paragraphs": text_to_paragraphs(report.section_3_work_performed),
+        "section7_paragraphs": text_to_paragraphs(report.section_7_functional_changes or "\n".join(agg.get("findings", []))),
         "section4_items": text_to_paragraphs(report.section_8_challenges),
         "section5_items": text_to_paragraphs(report.section_9_recommendations),
         "section6_items": text_to_paragraphs(report.section_10_next_goals),
