@@ -68,6 +68,18 @@ ASSIST_BAR = {
 ASSIST_LABELS = dict(SessionSensoryActivity.ASSISTANCE_CHOICES)
 
 
+DOMAIN_PARENT_DESC = {
+    "vestibular": "წონასწორობა, კოორდინაცია და სივრცეში ორიენტაცია",
+    "proprioceptive": "კუნთოვანი ძალა, სხეულის შეგრძნება და „მძიმე სამუშაო“",
+    "tactile": "შეხება, ტექსტურების შეცნობა და სენსორული ტოლერანტობა",
+    "sensory_perception": "ვიზუალური, აუდიტორული და სენსორული გარემოს მოდულაცია",
+    "praxis_gross": "მოტორული დაგეგმვა, დაბრკოლებების გადალახვა და მოძრაობა",
+    "fine_motor": "თითების მოტორიკა, ჩაჭიდება, ხატვა და მაგიდის აქტივობები",
+    "adl_play": "თვითმოვლა (ჭამა, ჩაცმა), თამაში და დამოუკიდებელი ინიციატივა",
+    "interoception": "სხეულის შინაგანი სიგნალების ამოცნობა და თვითდამშვიდება",
+}
+
+
 def independence_label(value):
     if value is None:
         return "—"
@@ -240,6 +252,7 @@ def aggregate_month(beneficiary, year, month):
             "name": d["name"],
             "icon": d["icon"],
             "slug": d["slug"],
+            "system_desc": DOMAIN_PARENT_DESC.get(d["slug"], "სენსორული და მოტორული რეგულაცია"),
             "count": d["count"],
             "minutes": d["minutes"],
             "sessions": len(d["session_ids"]),
