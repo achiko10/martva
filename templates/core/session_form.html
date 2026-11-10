@@ -82,12 +82,17 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">ხანგრძლივობა (წთ)</label>
-                        <select name="duration_minutes" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="number" name="duration_minutes" list="session-duration-presets" value="50" min="1" max="240" required
+                               placeholder="წთ"
+                               class="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <datalist id="session-duration-presets">
                             <option value="30">30 წუთი</option>
+                            <option value="40">40 წუთი</option>
                             <option value="45">45 წუთი</option>
-                            <option value="50" selected>50 წუთი</option>
+                            <option value="50">50 წუთი</option>
                             <option value="60">60 წუთი</option>
-                        </select>
+                            <option value="90">90 წუთი</option>
+                        </datalist>
                     </div>
                 </div>
 
@@ -290,7 +295,6 @@
                                     <div>
                                         <span class="block text-[10px] font-black uppercase tracking-wider text-indigo-800 mb-1">მოძრაობის ვექტორი / ტრაექტორია:</span>
                                         <div class="flex flex-wrap gap-1.5">
-                                            {% for v in "წინ-უკან (სწორხაზოვანი),გვერდითი (ლატერალური),ვერტიკალური (ზემოთ-ქვემოთ),როტაციული (წრიული),მულტი-მიმართულებითი"|make_list %}{% endfor %}
                                             <label class="cursor-pointer"><input type="radio" name="act_vector_{{ act.id }}" value="წინ-უკან (სწორხაზოვანი)" checked class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">↔ წინ-უკან (სწორხაზოვანი)</span></label>
                                             <label class="cursor-pointer"><input type="radio" name="act_vector_{{ act.id }}" value="გვერდითი (ლატერალური)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">⇄ გვერდითი (ლატერალური)</span></label>
                                             <label class="cursor-pointer"><input type="radio" name="act_vector_{{ act.id }}" value="ვერტიკალური (ზემოთ-ქვემოთ)" class="sr-only peer"><span class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-slate-200 bg-white text-slate-700 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition inline-block">↕ ვერტიკალური</span></label>
@@ -509,17 +513,23 @@
                                 </div>
                                 {% endif %}
 
-                                <!-- Common Bottom Row for Every Checked Activity: Duration + Specific Micro-Note -->
-                                <div class="pt-2 border-t border-blue-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <div class="flex items-center space-x-1.5">
-                                        <span class="text-[10px] font-bold text-slate-500 uppercase">დრო:</span>
-                                        <select name="act_duration_{{ act.id }}" class="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-700">
-                                            <option value="5">5 წთ</option>
-                                            <option value="10" selected>10 წთ</option>
-                                            <option value="15">15 წთ</option>
-                                            <option value="20">20 წთ</option>
-                                            <option value="25">25 წთ</option>
-                                        </select>
+                                <!-- Common Bottom Row for Every Checked Activity: Custom Duration Input + Presets + Specific Micro-Note -->
+                                <div class="pt-2.5 border-t border-blue-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase">დრო (წთ):</span>
+                                        <input type="number" name="act_duration_{{ act.id }}" id="act_duration_{{ act.id }}"
+                                               value="10" min="1" max="180" step="1"
+                                               placeholder="წთ"
+                                               class="w-16 px-2 py-1 text-center rounded-lg border border-slate-300 bg-white text-xs font-black text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                        <div class="flex items-center gap-1">
+                                            {% for p_min in "5,10,15,20,30,45"|make_list %}{% endfor %}
+                                            <button type="button" onclick="document.getElementById('act_duration_{{ act.id }}').value=5" class="px-1.5 py-0.5 rounded bg-white hover:bg-blue-100 border border-slate-200 text-[10px] font-bold text-slate-600 transition">5</button>
+                                            <button type="button" onclick="document.getElementById('act_duration_{{ act.id }}').value=10" class="px-1.5 py-0.5 rounded bg-white hover:bg-blue-100 border border-slate-200 text-[10px] font-bold text-slate-600 transition">10</button>
+                                            <button type="button" onclick="document.getElementById('act_duration_{{ act.id }}').value=15" class="px-1.5 py-0.5 rounded bg-white hover:bg-blue-100 border border-slate-200 text-[10px] font-bold text-slate-600 transition">15</button>
+                                            <button type="button" onclick="document.getElementById('act_duration_{{ act.id }}').value=20" class="px-1.5 py-0.5 rounded bg-white hover:bg-blue-100 border border-slate-200 text-[10px] font-bold text-slate-600 transition">20</button>
+                                            <button type="button" onclick="document.getElementById('act_duration_{{ act.id }}').value=30" class="px-1.5 py-0.5 rounded bg-white hover:bg-blue-100 border border-slate-200 text-[10px] font-bold text-slate-600 transition">30</button>
+                                            <button type="button" onclick="document.getElementById('act_duration_{{ act.id }}').value=45" class="px-1.5 py-0.5 rounded bg-white hover:bg-blue-100 border border-slate-200 text-[10px] font-bold text-slate-600 transition">45</button>
+                                        </div>
                                     </div>
                                     <div class="flex-1">
                                         <input type="text" name="act_note_{{ act.id }}"
@@ -682,21 +692,17 @@
         if (step === 2) line.style.width = '50%';
         if (step === 3) {
             line.style.width = '100%';
-            // Auto-generate clinical note if textarea is currently empty
-            const notesArea = document.getElementById('clinical-notes-textarea');
-            if (notesArea && !notesArea.value.trim()) {
-                generateSmartClinicalNote(false);
-            }
+            generateSmartClinicalNote(false);
         }
 
-        updateStepBtn(1, step >= 1, step === 1);
-        updateStepBtn(2, step >= 2, step === 2);
-        updateStepBtn(3, step >= 3, step === 3);
+        updateStepButton(1, step === 1, step > 1);
+        updateStepButton(2, step === 2, step > 2);
+        updateStepButton(3, step === 3, false);
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function updateStepBtn(num, isPassed, isCurrent) {
+    function updateStepButton(num, isCurrent, isPassed) {
         const btn = document.getElementById('step-btn-' + num);
         if (!btn) return;
         const base = "relative z-10 flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition ";
@@ -814,6 +820,10 @@
             const details = [];
 
             if (panel) {
+                const durInput = panel.querySelector(`input[name="act_duration_${actId}"]`);
+                if (durInput && durInput.value.trim()) {
+                    details.push(`${durInput.value.trim()} წთ`);
+                }
                 panel.querySelectorAll('input[type="radio"]:checked').forEach(r => {
                     const span = r.nextElementSibling;
                     if (span && span.innerText) {
