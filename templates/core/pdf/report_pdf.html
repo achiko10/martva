@@ -3,383 +3,311 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>{{ beneficiary_name }} — {{ period_display }} დასკვნა</title>
+    <title>{{ beneficiary_name }} — {{ period_display }} — კლინიკური ანგარიში</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#006a61',
-                        'primary-container': '#131b2e',
-                        'secondary': '#006a61',
-                        'secondary-container': '#86f2e4',
-                        'on-secondary-container': '#006f66',
-                        'surface-container-low': '#eff4ff',
-                        'surface-container': '#e5eeff',
-                        'surface-container-high': '#dce9ff',
-                        'surface-container-highest': '#d3e4fe',
-                        'surface-container-lowest': '#ffffff',
-                        'on-surface': '#0b1c30',
-                        'on-surface-variant': '#45464d',
-                        'outline': '#76777d',
-                        'outline-variant': '#c6c6cd',
-                    },
-                    fontFamily: {
-                        sans: ['Noto Sans', 'sans-serif'],
-                    }
-                }
-            }
-        };
-    </script>
     <style>
         body {
-            font-family: 'Noto Sans', sans-serif;
+            font-family: 'Noto Sans Georgian', 'Noto Sans', sans-serif;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
+        .sec-head { display:flex; align-items:center; justify-content:space-between; background:#0f3d3a; color:#fff; padding:7px 14px; border-radius:10px 10px 0 0; }
+        .sec-body { border:1px solid #d7e3e2; border-top:0; border-radius:0 0 10px 10px; padding:14px; background:#fbfdfd; }
+        .narr p { margin-bottom: 6px; }
         @media print {
             .no-print { display: none !important; }
             body { background: #ffffff !important; margin: 0 !important; padding: 0 !important; }
-            .print-sheet {
-                box-shadow: none !important;
-                border: none !important;
-                padding: 12mm !important;
-                width: 100% !important;
-                max-width: none !important;
-                border-radius: 0 !important;
-            }
-            @page {
-                size: A4 portrait;
-                margin: 8mm;
-            }
-            .page-break-before {
-                page-break-before: always;
-            }
-            .avoid-break {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
+            main { padding: 0 !important; }
+            .print-sheet { box-shadow: none !important; border: none !important; padding: 0 !important; width: 100% !important; max-width: none !important; border-radius: 0 !important; }
+            @page { size: A4 portrait; margin: 10mm 9mm; }
+            .avoid-break { break-inside: avoid; page-break-inside: avoid; }
+            .page-break { break-before: page; page-break-before: always; }
+            tr { break-inside: avoid; }
         }
     </style>
 </head>
-<body class="bg-[#eef2f6] text-[#0b1c30] min-h-screen antialiased flex flex-col items-center">
+<body class="bg-[#eef2f6] text-slate-900 min-h-screen antialiased">
 
-    <!-- Screen Navigation & Print Toolbar (Hidden during Print/PDF) -->
-    <header class="no-print fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm">
-        <div class="max-w-6xl mx-auto h-14 px-4 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <a href="{% url 'monthly_report_edit' report.id %}" class="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800 transition py-1 px-2.5 rounded-lg hover:bg-slate-100">
-                    <span class="material-symbols-outlined text-base">arrow_back</span>
-                    <span>რედაქტორში დაბრუნება</span>
-                </a>
-                <span class="text-slate-300">|</span>
-                <div class="flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-secondary text-lg">clinical_notes</span>
-                    <span class="text-xs sm:text-sm font-bold text-slate-800 truncate max-w-xs sm:max-w-md">{{ beneficiary_name }} — {{ period_display }}</span>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <span class="hidden md:inline-flex items-center gap-1 bg-[#eff4ff] text-[#006a61] px-2.5 py-1 rounded-full text-[11px] font-bold">
-                    <span class="material-symbols-outlined text-xs">verified</span>
-                    <span>ISO-15189 Verified</span>
-                </span>
-                <button onclick="window.print()" type="button" class="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs transition">
-                    <span class="material-symbols-outlined text-base">print</span>
-                    <span>ამობეჭდვა</span>
-                </button>
-                <a href="{% url 'monthly_report_pdf' report.id %}?download=1" class="flex items-center gap-1.5 px-4 py-2 bg-[#006a61] hover:bg-[#005049] text-white rounded-xl font-bold text-xs shadow-md shadow-[#006a61]/20 transition">
-                    <span class="material-symbols-outlined text-base">download</span>
-                    <span>PDF ჩამოტვირთვა</span>
-                </a>
+    {% if not pdf_mode %}
+    <!-- Screen toolbar (hidden in print/PDF) -->
+    <header class="no-print fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div class="max-w-5xl mx-auto h-14 px-3 sm:px-4 flex items-center justify-between gap-2">
+            <a href="{% url 'monthly_report_edit' report.id %}" class="text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 shrink-0">
+                ← რედაქტორი
+            </a>
+            <span class="hidden sm:block text-xs font-bold text-slate-700 truncate">{{ beneficiary_name }} — {{ period_display }}</span>
+            <div class="flex items-center gap-2 shrink-0">
+                <button onclick="window.print()" type="button" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs">🖨️ ბეჭდვა</button>
+                <a href="{% url 'monthly_report_pdf' report.id %}?download=1" class="px-3 py-2 bg-[#006a61] hover:bg-[#005049] text-white rounded-xl font-bold text-xs">⬇ PDF</a>
             </div>
         </div>
     </header>
+    {% endif %}
 
-    <!-- Main Printable Canvas Container -->
-    <main class="w-full pt-20 pb-16 px-4 print:p-0 flex flex-col items-center">
-        <div class="print-sheet w-full max-w-[850px] bg-white text-[#0b1c30] shadow-2xl rounded-2xl p-8 sm:p-12 print:p-8 relative">
+    <main class="w-full {% if not pdf_mode %}pt-20 pb-16 px-2 sm:px-4{% endif %} flex flex-col items-center">
+        <div class="print-sheet w-full max-w-[860px] bg-white shadow-2xl rounded-2xl p-5 sm:p-10 text-[12px] leading-relaxed">
 
-            <!-- 1. Document Security Header / Micro Bar -->
-            <div class="flex items-center justify-between pb-3 mb-5 border-b border-slate-200 text-xs">
-                <div class="flex items-center gap-2">
-                    <span class="inline-block w-2 h-2 rounded-full bg-[#006a61]"></span>
-                    <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#006a61]">ოფიციალური კლინიკური დოკუმენტაცია</span>
-                    <span class="text-slate-400">•</span>
-                    <span class="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">კონფიდენციალური / სამედიცინო საიდუმლოება</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-[11px] text-slate-500 font-semibold">დოკუმენტის N:</span>
-                    <span class="text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">#DOC-{{ report.id|stringformat:"04d" }}</span>
-                </div>
+            <!-- ═════════ HEADER ═════════ -->
+            <div class="flex items-center justify-between pb-2 mb-4 border-b border-slate-200 text-[10px]">
+                <span class="font-bold uppercase tracking-wider text-[#006a61]">● ოფიციალური კლინიკური დოკუმენტაცია • კონფიდენციალური</span>
+                <span class="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">#DOC-{{ report.id|stringformat:"04d" }}</span>
             </div>
 
-            <!-- 2. Official Center Header Block -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-6 border-b-2 border-slate-900">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-[#eff4ff] border border-[#dce9ff] flex items-center justify-center text-[#006a61] shrink-0">
-                        <span class="material-symbols-outlined text-2xl">local_hospital</span>
-                    </div>
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-4 mb-5 border-b-2 border-slate-900">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-[#006a61] text-white flex items-center justify-center font-black text-lg shrink-0">OT</div>
                     <div>
-                        <h1 class="text-2xl font-black text-slate-900 tracking-tight">ცენტრი</h1>
-                        <p class="text-xs font-semibold text-slate-500 mt-0.5">ოკუპაციური თერაპიის და სენსორული ინტეგრაციის დეპარტამენტი</p>
-                        <p class="text-[10px] text-slate-400 mt-0.5">სამედიცინო სტანდარტი: ISO-15189 / ლიცენზია N: #OT-CLINIC-01</p>
+                        <h1 class="text-lg sm:text-xl font-black text-slate-900 leading-tight">{{ clinic_name }}</h1>
+                        <p class="text-[11px] font-semibold text-slate-500">ოკუპაციური თერაპიისა და სენსორული ინტეგრაციის დეპარტამენტი</p>
                     </div>
                 </div>
-                <div class="text-left sm:text-right">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">შეფასების თარიღი</span>
-                    <span class="text-sm font-bold text-slate-900 block mt-0.5">{{ report_date }}</span>
-                    <span class="inline-flex items-center gap-1 text-[11px] text-[#006a61] font-bold mt-1">
-                        <span class="material-symbols-outlined text-xs">verified</span>
-                        <span>ვალიდირებულია • კლინიკური ანგარიში</span>
-                    </span>
+                <div class="sm:text-right">
+                    <div class="text-[10px] font-bold uppercase text-slate-400">დოკუმენტის თარიღი</div>
+                    <div class="text-sm font-black">{{ report_date }}</div>
+                    <div class="text-[10px] font-bold {% if report.is_finalized %}text-emerald-700{% else %}text-amber-700{% endif %}">{{ doc_status }}</div>
                 </div>
             </div>
 
-            <!-- 3. Document Main Title Banner -->
-            <div class="bg-[#eff4ff] border border-[#dce9ff] rounded-xl p-4 sm:p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                    <h2 class="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                        {{ report.title }}
-                    </h2>
-                    <p class="text-xs font-semibold text-slate-600 mt-1">
-                        საანგარიშო პერიოდი: <strong class="text-slate-900">{{ period_display }}</strong> • დასწრება: <strong class="text-slate-900">{{ sessions_count }} სესია</strong> (სულ {{ total_minutes }} წთ)
-                    </p>
-                </div>
-                <div class="shrink-0">
-                    <span class="inline-flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm text-xs font-bold text-slate-800">
-                        <span class="material-symbols-outlined text-xs text-[#006a61]">verified_user</span>
-                        <span>სტანდარტული ოქმი</span>
-                    </span>
-                </div>
+            <div class="rounded-xl bg-[#eff6f5] border border-[#cfe5e2] p-4 mb-5">
+                <h2 class="text-base sm:text-lg font-black text-slate-900">{{ report.title }}</h2>
+                <p class="text-[11px] text-slate-600 mt-0.5">საანგარიშო პერიოდი: <strong class="text-slate-900">{{ period_display }}</strong></p>
             </div>
 
-            <!-- 4. Patient Demographics & Profile (4-Column Card Grid) -->
-            <div class="mb-7 avoid-break">
-                <div class="flex items-center gap-2 mb-2.5">
-                    <span class="material-symbols-outlined text-[#006a61] text-base">person</span>
-                    <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-                        დემოგრაფიული მონაცემები და კლინიკური პროფილი
-                    </h3>
+            <!-- ═════════ DEMOGRAPHICS ═════════ -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 p-4 rounded-xl border border-slate-200 bg-slate-50 avoid-break">
+                <div><div class="text-[9px] font-bold uppercase text-slate-400">ბენეფიციარი</div><div class="text-sm font-black">{{ beneficiary_name }}</div></div>
+                <div><div class="text-[9px] font-bold uppercase text-slate-400">დაბადების თარიღი (ასაკი)</div><div class="font-bold">{{ dob }} <span class="text-[#006a61]">({{ age }})</span></div></div>
+                <div><div class="text-[9px] font-bold uppercase text-slate-400">თერაპიის დაწყება</div><div class="font-bold">{{ therapy_start }}</div></div>
+                <div><div class="text-[9px] font-bold uppercase text-slate-400">თერაპევტი</div><div class="font-bold">{{ therapist_name }}</div></div>
+            </div>
+
+            <!-- ═════════ KPI STRIP ═════════ -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-5 avoid-break">
+                <div class="rounded-xl border border-slate-200 p-3 text-center">
+                    <div class="text-[9px] font-bold uppercase text-slate-400">სესიები</div>
+                    <div class="text-xl font-black text-slate-900">{{ sessions_count }}</div>
+                    <div class="text-[10px] text-slate-500">{% if planned_slots %}დაგეგმილი: {{ planned_slots }}{% else %}ჩატარებული{% endif %}</div>
                 </div>
-
-                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm">
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-4 border-b border-slate-200">
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">ბენეფიციარი</span>
-                            <span class="text-sm font-black text-slate-900 block mt-0.5">{{ beneficiary_name }}</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">დაბ. თარიღი (ასაკი)</span>
-                            <span class="text-xs font-bold text-slate-800 block mt-0.5">{{ dob }} <span class="text-[#006a61]">({{ age }})</span></span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">მშობელი / მეურვე</span>
-                            <span class="text-xs font-bold text-slate-800 block mt-0.5">{{ parent_name|default:"საკონტაქტო პირი" }}</span>
-                            {% if parent_phone %}<span class="text-[10px] text-slate-500 font-medium">{{ parent_phone }}</span>{% endif %}
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">მკურნალი თერაპევტი</span>
-                            <span class="text-xs font-bold text-slate-800 block mt-0.5">{{ therapist_name }}</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-3 text-xs">
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">საანგარიშო პერიოდი</span>
-                            <span class="font-bold text-slate-800">{{ period_display }}</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">სესიები / ხანგრძლივობა</span>
-                            <span class="font-bold text-slate-800">{{ sessions_count }} სესია • {{ total_minutes }} წთ</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">დოკუმენტის სტატუსი</span>
-                            <span class="font-bold text-slate-800">{{ doc_status }}</span>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">საიდენტიფიკაციო კოდი</span>
-                            <span class="font-bold text-[#006a61]">#DOC-{{ report.id|stringformat:"04d" }}</span>
-                        </div>
+                <div class="rounded-xl border border-slate-200 p-3 text-center">
+                    <div class="text-[9px] font-bold uppercase text-slate-400">ჯამური დრო</div>
+                    <div class="text-xl font-black text-slate-900">{{ total_minutes }}<span class="text-xs"> წთ</span></div>
+                    <div class="text-[10px] text-slate-500">საშ. {{ avg_minutes }} წთ / სესია</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-3 text-center">
+                    <div class="text-[9px] font-bold uppercase text-slate-400">დასწრება</div>
+                    <div class="text-xl font-black {% if attendance_rate is not None and attendance_rate < 80 %}text-amber-600{% else %}text-emerald-700{% endif %}">{% if attendance_rate is not None %}{{ attendance_rate }}%{% else %}—{% endif %}</div>
+                    <div class="text-[10px] text-slate-500">გაცდენა: {{ missed_slots }}</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-3 text-center">
+                    <div class="text-[9px] font-bold uppercase text-slate-400">პოზიტიური რეგულაცია</div>
+                    <div class="text-xl font-black text-emerald-700">{{ reg_positive_pct }}%</div>
+                    <div class="text-[10px] text-slate-500">↑ {{ reg_improved }} • ● {{ reg_stable_optimal }} • ↓ {{ reg_worsened }}</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-3 text-center col-span-2 sm:col-span-1">
+                    <div class="text-[9px] font-bold uppercase text-slate-400">დამოუკიდებლობის ინდექსი</div>
+                    <div class="text-xl font-black text-[#006a61]">{% if overall_index %}{{ overall_index|floatformat:1 }}<span class="text-xs">/6</span>{% else %}—{% endif %}</div>
+                    <div class="text-[10px] {% if index_delta and index_delta > 0 %}text-emerald-700{% elif index_delta and index_delta < 0 %}text-rose-700{% else %}text-slate-500{% endif %} font-bold">
+                        {% if index_delta is not None %}{% if index_delta > 0 %}▲ +{{ index_delta|floatformat:2 }}{% elif index_delta < 0 %}▼ {{ index_delta|floatformat:2 }}{% else %}= სტაბილური{% endif %}{% else %}&nbsp;{% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- 5. SECTION I: Attendance & Overview (Alert Program Self-Regulation) -->
-            <div class="mb-7 avoid-break">
-                <div class="flex items-center justify-between bg-[#dce9ff] px-3.5 py-2 rounded-t-xl">
-                    <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm text-[#006a61]">calendar_month</span>
-                        <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-                            I. დასწრება და ზოგადი მიმოხილვა
-                        </h3>
+            <!-- ═════════ KEY FINDINGS ═════════ -->
+            {% if findings %}
+            <div class="mb-6 rounded-xl border-l-4 border-[#006a61] bg-[#f3faf9] p-4 avoid-break">
+                <div class="text-[11px] font-black uppercase tracking-wider text-[#006a61] mb-2">ძირითადი კლინიკური მიგნებები</div>
+                <ul class="space-y-1">
+                    {% for f in findings %}
+                    <li class="flex gap-2"><span class="text-[#006a61] font-black">✓</span><span>{{ f }}</span></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- ═════════ I. ATTENDANCE, ADAPTATION & REGULATION ═════════ -->
+            <section class="mb-6">
+                <div class="sec-head"><span class="text-[12px] font-bold">I. დასწრება, ადაპტაცია და თვითრეგულაცია</span><span class="text-[9px] uppercase opacity-80">Alert Program®</span></div>
+                <div class="sec-body space-y-4">
+                    {% if section1_paragraphs %}
+                    <div class="narr text-slate-700">{% for p in section1_paragraphs %}<p>{{ p }}</p>{% endfor %}</div>
+                    {% endif %}
+
+                    <div class="avoid-break">
+                        <div class="text-[10px] font-bold uppercase text-slate-500 mb-2">რეგულაციის ზონები — სესიის დასაწყისი vs დასასრული</div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {% for z in zones %}
+                            <div class="rounded-lg border {{ z.border }} bg-white p-2.5">
+                                <div class="flex items-center gap-1.5 font-bold {{ z.text }}"><span class="inline-block w-2.5 h-2.5 rounded-full {{ z.dot }}"></span>{{ z.label }}</div>
+                                <div class="text-[9px] text-slate-500 mb-1.5">{{ z.sub }}</div>
+                                <div class="text-[10px] flex justify-between"><span>დასაწყისი</span><strong>{{ z.init }}x</strong></div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1"><div class="h-full {{ z.bar }} opacity-50" style="width: {{ z.init_pct }}%"></div></div>
+                                <div class="text-[10px] flex justify-between"><span>დასასრული</span><strong>{{ z.final }}x</strong></div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full {{ z.bar }}" style="width: {{ z.final_pct }}%"></div></div>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Alert Program</span>
-                </div>
 
-                <div class="p-4 sm:p-5 bg-[#f8f9ff] border border-[#dce9ff] border-t-0 rounded-b-xl space-y-4">
-                    <!-- Clean narrative card (No dots!) -->
-                    <div class="bg-white border-l-4 border-[#006a61] border border-slate-200 p-4 rounded-r-xl shadow-sm text-xs leading-relaxed text-slate-700">
-                        {% for line in section1_paragraphs %}
-                        <p class="{% if not forloop.last %}mb-2{% endif %}">{{ line }}</p>
-                        {% endfor %}
-                    </div>
-
-                    <!-- Alert Program 4-Zones Grid -->
-                    <div>
-                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
-                            თვითრეგულაციის ზონების დინამიკა (Alert Program):
-                        </span>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                            <!-- Green Zone -->
-                            <div class="bg-white p-3 rounded-xl border border-emerald-200 shadow-sm flex flex-col justify-between">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-bold text-emerald-900 flex items-center">
-                                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>მწვანე ზონა
-                                    </span>
-                                    <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold">ოპტიმალური</span>
-                                </div>
-                                <div class="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex justify-between">
-                                    <span>საწყისი: <strong>{{ alert_zones_dict.green_init|default:0 }}x</strong></span>
-                                    <span>საბოლოო: <strong class="text-emerald-700">{{ alert_zones_dict.green_final|default:0 }}x</strong></span>
-                                </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 avoid-break">
+                        <div class="rounded-lg border border-slate-200 bg-white p-3">
+                            <div class="text-[10px] font-bold uppercase text-slate-500 mb-2">სესიის რეგულაციური ეფექტი</div>
+                            <div class="grid grid-cols-4 gap-1.5 text-center">
+                                <div class="rounded-md bg-emerald-50 p-1.5"><div class="text-base font-black text-emerald-700">{{ reg_improved }}</div><div class="text-[9px]">გაუმჯობესდა</div></div>
+                                <div class="rounded-md bg-teal-50 p-1.5"><div class="text-base font-black text-teal-700">{{ reg_stable_optimal }}</div><div class="text-[9px]">შენარჩუნდა ოპტ.</div></div>
+                                <div class="rounded-md bg-slate-100 p-1.5"><div class="text-base font-black text-slate-600">{{ reg_unchanged }}</div><div class="text-[9px]">უცვლელი</div></div>
+                                <div class="rounded-md bg-rose-50 p-1.5"><div class="text-base font-black text-rose-700">{{ reg_worsened }}</div><div class="text-[9px]">გაუარესდა</div></div>
                             </div>
-
-                            <!-- Yellow Zone -->
-                            <div class="bg-white p-3 rounded-xl border border-amber-200 shadow-sm flex flex-col justify-between">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-bold text-amber-900 flex items-center">
-                                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 mr-1.5"></span>ყვითელი ზონა
-                                    </span>
-                                    <span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold">მომატებული</span>
-                                </div>
-                                <div class="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex justify-between">
-                                    <span>საწყისი: <strong>{{ alert_zones_dict.yellow_init|default:0 }}x</strong></span>
-                                    <span>საბოლოო: <strong class="text-amber-700">{{ alert_zones_dict.yellow_final|default:0 }}x</strong></span>
-                                </div>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-white p-3">
+                            <div class="text-[10px] font-bold uppercase text-slate-500 mb-2">შემოსვლა და გარემოსთან ადაპტაცია</div>
+                            {% for e in entry_rows %}
+                            <div class="mb-1">
+                                <div class="flex justify-between text-[10px]"><span class="truncate pr-2">{{ e.label }}</span><strong>{{ e.count }}x</strong></div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full {% if e.positive %}bg-emerald-500{% else %}bg-amber-500{% endif %}" style="width: {{ e.pct }}%"></div></div>
                             </div>
-
-                            <!-- Blue Zone -->
-                            <div class="bg-white p-3 rounded-xl border border-blue-200 shadow-sm flex flex-col justify-between">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-bold text-blue-900 flex items-center">
-                                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 mr-1.5"></span>ლურჯი ზონა
-                                    </span>
-                                    <span class="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">დაქვეითებული</span>
-                                </div>
-                                <div class="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex justify-between">
-                                    <span>საწყისი: <strong>{{ alert_zones_dict.blue_init|default:0 }}x</strong></span>
-                                    <span>საბოლოო: <strong class="text-blue-700">{{ alert_zones_dict.blue_final|default:0 }}x</strong></span>
-                                </div>
-                            </div>
-
-                            <!-- Red Zone -->
-                            <div class="bg-white p-3 rounded-xl border border-rose-200 shadow-sm flex flex-col justify-between">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs font-bold text-rose-900 flex items-center">
-                                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500 mr-1.5"></span>წითელი ზონა
-                                    </span>
-                                    <span class="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded font-bold">აფექტური</span>
-                                </div>
-                                <div class="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 flex justify-between">
-                                    <span>საწყისი: <strong>{{ alert_zones_dict.red_init|default:0 }}x</strong></span>
-                                    <span>საბოლოო: <strong class="text-rose-700">{{ alert_zones_dict.red_final|default:0 }}x</strong></span>
-                                </div>
-                            </div>
+                            {% empty %}
+                            <div class="text-[10px] text-slate-400">მონაცემი არ ფიქსირდება.</div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- 6. SECTION II: Sensory Systems & Responses -->
-            <div class="mb-7 avoid-break">
-                <div class="flex items-center justify-between bg-[#dce9ff] px-3.5 py-2 rounded-t-xl">
-                    <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm text-[#006a61]">psychology</span>
-                        <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-                            II. სენსორული სისტემები და რეაქციები
-                        </h3>
-                    </div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Sensory Integration</span>
-                </div>
-
-                <div class="p-4 sm:p-5 bg-[#f8f9ff] border border-[#dce9ff] border-t-0 rounded-b-xl space-y-3">
-                    {% for item in section2_items %}
-                    <div class="bg-white border-l-4 border-[#006a61] border border-slate-200 p-3.5 rounded-r-xl shadow-sm text-xs text-slate-700">
-                        {{ item }}
+            <!-- ═════════ II. CLINICAL DOMAINS & SMART EVALUATION ═════════ -->
+            <section class="mb-6">
+                <div class="sec-head"><span class="text-[12px] font-bold">II. კლინიკური მიმართულებები და ჭკვიანი შეფასება</span><span class="text-[9px] uppercase opacity-80">{{ total_interventions }} ინტერვენცია</span></div>
+                <div class="sec-body space-y-3">
+                    {% for d in domains %}
+                    <div class="rounded-xl border border-slate-200 bg-white overflow-hidden avoid-break">
+                        <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
+                            <div class="font-black text-slate-900 text-[12px]">{{ d.icon }} {{ d.name }}</div>
+                            <div class="flex flex-wrap gap-1.5 text-[10px] font-bold">
+                                <span class="px-2 py-0.5 rounded bg-white border border-slate-200">{{ d.count }} ინტერვ. • {{ d.sessions }} სესია</span>
+                                <span class="px-2 py-0.5 rounded bg-white border border-slate-200">{{ d.minutes }} წთ</span>
+                                <span class="px-2 py-0.5 rounded bg-[#006a61] text-white">{{ d.share_pct }}% მოცულობის</span>
+                            </div>
+                        </div>
+                        <div class="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <!-- Activities -->
+                            <div>
+                                <div class="text-[9px] font-bold uppercase text-slate-400 mb-1">განხორციელებული აქტივობები</div>
+                                <table class="w-full text-[10.5px]">
+                                    {% for a in d.activities %}
+                                    <tr class="border-b border-slate-100 last:border-0">
+                                        <td class="py-1 pr-2 text-slate-800">{{ a.name }}</td>
+                                        <td class="py-1 text-right whitespace-nowrap font-bold">{{ a.count }}x</td>
+                                        <td class="py-1 pl-2 text-right whitespace-nowrap text-slate-500">{{ a.minutes }} წთ</td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                            </div>
+                            <!-- Independence & assistance -->
+                            <div>
+                                <div class="text-[9px] font-bold uppercase text-slate-400 mb-1">დახმარების დონე (Prompt Hierarchy)</div>
+                                {% if d.index %}
+                                <div class="flex items-center justify-between text-[10.5px] mb-1"><span>{{ d.index_label }}</span><strong class="text-[#006a61]">{{ d.index|floatformat:1 }}/6</strong></div>
+                                <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-2"><div class="h-full bg-[#006a61]" style="width: {{ d.index_pct }}%"></div></div>
+                                {% endif %}
+                                <div class="flex h-2.5 rounded-full overflow-hidden mb-1">
+                                    {% for a in d.assist %}<div class="{{ a.bar }}" style="width: {{ a.pct }}%" title="{{ a.label }}"></div>{% endfor %}
+                                </div>
+                                <div class="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[9.5px] text-slate-600">
+                                    {% for a in d.assist %}<span><span class="inline-block w-2 h-2 rounded-sm {{ a.bar }} mr-0.5"></span>{{ a.label }} — {{ a.count }}</span>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if d.evals %}
+                        <div class="px-3 pb-3">
+                            <div class="text-[9px] font-bold uppercase text-slate-400 mb-1">კონტექსტური შეფასების პარამეტრები</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+                                {% for ev in d.evals %}
+                                <div>
+                                    <div class="text-[10px] font-bold text-slate-700">{{ ev.label }}:</div>
+                                    <div class="flex flex-wrap gap-1 mt-0.5">
+                                        {% for v in ev.values %}
+                                        <span class="px-1.5 py-0.5 rounded bg-[#eff6f5] border border-[#cfe5e2] text-[9.5px]">{{ v.value }} <strong>×{{ v.count }}</strong></span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if d.responses or d.notes %}
+                        <div class="px-3 pb-3 space-y-1.5">
+                            {% if d.responses %}
+                            <div class="flex flex-wrap items-center gap-1">
+                                <span class="text-[9px] font-bold uppercase text-slate-400 mr-1">რეაქციები:</span>
+                                {% for r in d.responses %}<span class="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[9.5px] font-semibold">{{ r.name }} ({{ r.count }})</span>{% endfor %}
+                            </div>
+                            {% endif %}
+                            {% for nt in d.notes %}
+                            <div class="text-[10px] text-slate-600 italic">📌 {{ nt }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                     {% empty %}
-                    <p class="text-xs text-slate-500 italic">სენსორული მონაცემები არ ფიქსირდება.</p>
+                    <p class="text-slate-500 italic">თერაპიული ინტერვენციები საანგარიშო პერიოდში არ დაფიქსირებულა.</p>
                     {% endfor %}
-                </div>
-            </div>
 
-            <!-- 7. SECTION III: Quantitative SMART Goals Matrix Table -->
-            <div class="mb-7 avoid-break">
-                <div class="flex items-center justify-between bg-[#dce9ff] px-3.5 py-2 rounded-t-xl">
-                    <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm text-[#006a61]">table_chart</span>
-                        <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-                            III. SMART მიზნების რაოდენობრივი დინამიკა
-                        </h3>
+                    {% if section2_paragraphs %}
+                    <div class="rounded-lg bg-white border border-slate-200 p-3 narr text-slate-700">
+                        <div class="text-[10px] font-bold uppercase text-slate-500 mb-1">კლინიკური ინტერპრეტაცია</div>
+                        {% for p in section2_paragraphs %}<p>{{ p }}</p>{% endfor %}
                     </div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">გაზომვადი პროგრესი</span>
+                    {% endif %}
                 </div>
+            </section>
 
-                <div class="bg-[#f8f9ff] border border-[#dce9ff] border-t-0 rounded-b-xl p-4 sm:p-5 overflow-hidden">
+            <!-- ═════════ III. SMART GOALS ═════════ -->
+            <section class="mb-6">
+                <div class="sec-head"><span class="text-[12px] font-bold">III. SMART მიზნების რაოდენობრივი დინამიკა</span><span class="text-[9px] uppercase opacity-80">გაზომვადი პროგრესი</span></div>
+                <div class="sec-body space-y-3">
                     {% if goals %}
-                    <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white">
-                        <table class="w-full text-left text-xs border-collapse">
+                    <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                        <table class="w-full text-[10.5px] border-collapse">
                             <thead>
-                                <tr class="bg-slate-900 text-white font-bold uppercase text-[10px] tracking-wider">
-                                    <th class="py-3 px-3.5 w-5/12">განვითარების დომენი და მიზანი</th>
-                                    <th class="py-3 px-2.5 text-center w-1/12">საწყისი</th>
-                                    <th class="py-3 px-2.5 text-center w-2/12">თვის შედეგი</th>
-                                    <th class="py-3 px-2.5 text-center w-1/12">სამიზნე</th>
-                                    <th class="py-3 px-3.5 text-center w-3/12">პროგრესი / სტატუსი</th>
+                                <tr class="bg-slate-800 text-white text-[9px] uppercase">
+                                    <th class="p-2 text-left">დომენი / მიზანი</th>
+                                    <th class="p-2 text-center">საწყისი</th>
+                                    <th class="p-2 text-center">თვე: დასაწყ. → ბოლო</th>
+                                    <th class="p-2 text-center">სამიზნე</th>
+                                    <th class="p-2 text-center">სესიების ტრენდი</th>
+                                    <th class="p-2 text-center w-24">პროგრესი</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100">
+                            <tbody>
                                 {% for g in goals %}
-                                <tr class="{% cycle 'bg-white' 'bg-slate-50/60' %} hover:bg-[#eff4ff] transition">
-                                    <td class="py-3 px-3.5 align-middle">
-                                        <div class="font-bold text-slate-900 flex items-center gap-1.5">
-                                            <span class="inline-block w-2 h-2 rounded-full {% if g.pct >= 70 %}bg-emerald-500{% elif g.pct >= 30 %}bg-amber-500{% else %}bg-rose-500{% endif %}"></span>
-                                            <span>{{ g.domain }}</span>
+                                <tr class="border-t border-slate-100 align-middle">
+                                    <td class="p-2">
+                                        <div class="font-bold text-slate-900">{{ g.domain }} <span class="text-[9px] font-semibold text-slate-400">• {{ g.status }}{% if g.target_date %} • ვადა {{ g.target_date }}{% endif %}</span></div>
+                                        <div class="text-slate-600 leading-snug">{{ g.description }}</div>
+                                        {% if g.prompt %}<div class="text-[9px] text-slate-400">დახმარება: {{ g.prompt }}</div>{% endif %}
+                                    </td>
+                                    <td class="p-2 text-center font-bold whitespace-nowrap">{{ g.baseline }}{{ g.unit }}</td>
+                                    <td class="p-2 text-center whitespace-nowrap">
+                                        {% if g.sessions_worked %}
+                                        <span class="font-bold">{{ g.month_start }}</span> → <span class="font-black">{{ g.month_end }}</span>{{ g.unit }}
+                                        <div class="text-[9px] font-bold {% if g.month_delta and g.month_delta > 0 %}text-emerald-700{% elif g.month_delta and g.month_delta < 0 %}text-rose-700{% else %}text-slate-400{% endif %}">{{ g.month_delta_str }} • {{ g.sessions_worked }} სეს.</div>
+                                        {% else %}
+                                        <span class="text-slate-400">არ გაზომილა</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-2 text-center font-bold whitespace-nowrap">{{ g.target }}{{ g.unit }}</td>
+                                    <td class="p-2">
+                                        {% if g.spark %}
+                                        <div class="flex items-end justify-center gap-0.5 h-8">
+                                            {% for b in g.spark %}<div class="w-2 rounded-t bg-[#006a61]" style="height: {{ b.h }}%" title="{{ b.date }}: {{ b.value }}"></div>{% endfor %}
                                         </div>
-                                        <p class="text-[11px] text-slate-600 mt-0.5 leading-snug">{{ g.description }}</p>
+                                        {% else %}<div class="text-center text-slate-300">—</div>{% endif %}
                                     </td>
-                                    <td class="py-3 px-2.5 text-center font-bold text-slate-700 align-middle">
-                                        {{ g.baseline }}{{ g.unit }}
-                                    </td>
-                                    <td class="py-3 px-2.5 text-center font-black text-slate-900 align-middle">
-                                        {{ g.current }}{{ g.unit }}
-                                    </td>
-                                    <td class="py-3 px-2.5 text-center font-bold text-slate-700 align-middle">
-                                        {{ g.target }}{{ g.unit }}
-                                    </td>
-                                    <td class="py-3 px-3.5 text-center align-middle">
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold
-                                            {% if g.pct >= 70 %}
-                                                bg-emerald-50 text-emerald-800 border border-emerald-200
-                                            {% elif g.pct >= 30 %}
-                                                bg-amber-50 text-amber-800 border border-amber-200
-                                            {% else %}
-                                                bg-rose-50 text-rose-800 border border-rose-200
-                                            {% endif %}">
-                                            <span class="material-symbols-outlined text-[11px] leading-none">
-                                                {% if g.pct >= 70 %}check_circle{% elif g.pct >= 30 %}trending_up{% else %}warning{% endif %}
-                                            </span>
-                                            <span>{{ g.pct }}%</span>
-                                            <span class="hidden sm:inline text-[9px] opacity-80">
-                                                {% if g.pct >= 70 %}ასაკობრივი{% elif g.pct >= 30 %}პროგრესში{% else %}საყურადღებო{% endif %}
-                                            </span>
-                                        </span>
+                                    <td class="p-2">
+                                        <div class="text-center font-black {% if g.tone == 'emerald' %}text-emerald-700{% elif g.tone == 'amber' %}text-amber-700{% else %}text-rose-700{% endif %}">{{ g.pct }}%</div>
+                                        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full {% if g.tone == 'emerald' %}bg-emerald-500{% elif g.tone == 'amber' %}bg-amber-500{% else %}bg-rose-500{% endif %}" style="width: {{ g.pct }}%"></div></div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -387,105 +315,168 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-xs text-slate-500 italic">აქტიური მიზნების რაოდენობრივი მონაცემები არ ფიქსირდება.</p>
+                    <p class="text-slate-500 italic">აქტიური მიზნები არ არის განსაზღვრული.</p>
+                    {% endif %}
+
+                    {% if section3_paragraphs %}
+                    <div class="rounded-lg bg-white border border-slate-200 p-3 narr text-slate-700">
+                        {% for p in section3_paragraphs %}<p>{{ p }}</p>{% endfor %}
+                    </div>
                     {% endif %}
                 </div>
-            </div>
+            </section>
 
-            <!-- 8. SECTION IV: Challenges & Clinical Observations -->
-            <div class="mb-7 avoid-break">
-                <div class="flex items-center justify-between bg-[#dce9ff] px-3.5 py-2 rounded-t-xl">
-                    <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm text-[#006a61]">visibility</span>
-                        <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-                            IV. კლინიკური დაკვირვებები და დაფიქსირებული გამოწვევები
-                        </h3>
-                    </div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Observations</span>
-                </div>
-
-                <div class="p-4 sm:p-5 bg-[#f8f9ff] border border-[#dce9ff] border-t-0 rounded-b-xl space-y-3">
-                    {% for item in section4_items %}
-                    <div class="bg-white border-l-4 border-amber-500 border border-slate-200 p-3.5 rounded-r-xl shadow-sm text-xs text-slate-700">
-                        {{ item }}
-                    </div>
-                    {% empty %}
-                    <p class="text-xs text-slate-500 italic">სესიების მიმდინარეობისას გამოწვევები არ დაფიქსირებულა.</p>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- 9. SECTION V: Clinical Recommendations (Home Programme) -->
-            <div class="mb-7 avoid-break">
-                <div class="flex items-center justify-between bg-[#dce9ff] px-3.5 py-2 rounded-t-xl">
-                    <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-sm text-[#006a61]">home</span>
-                        <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
-                            V. კლინიკური რეკომენდაციები ოჯახს (Home Programme)
-                        </h3>
-                    </div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">ინტერვენცია</span>
-                </div>
-
-                <div class="p-4 sm:p-5 bg-[#eff4ff] border border-[#dce9ff] border-t-0 rounded-b-xl">
-                    <div class="space-y-2.5">
-                        {% for item in section5_items %}
-                        <div class="bg-white border-l-4 border-[#006a61] border border-slate-200/90 p-3.5 rounded-r-xl shadow-sm text-xs text-slate-800 leading-relaxed">
-                            {{ item }}
+            <!-- ═════════ IV. INDEPENDENCE / PROMPT HIERARCHY ═════════ -->
+            {% if assist_rows %}
+            <section class="mb-6 avoid-break">
+                <div class="sec-head"><span class="text-[12px] font-bold">IV. დამოუკიდებლობის დინამიკა (OT Prompt Hierarchy)</span><span class="text-[9px] uppercase opacity-80">1 = სრული დახმარება • 6 = დამოუკიდებელი</span></div>
+                <div class="sec-body grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-[10px] font-bold uppercase text-slate-500 mb-2">დახმარების დონეების განაწილება</div>
+                        {% for a in assist_rows %}
+                        <div class="mb-1.5">
+                            <div class="flex justify-between text-[10px]"><span>{{ a.label }}</span><strong>{{ a.count }} ({{ a.pct }}%)</strong></div>
+                            <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full {{ a.bar }}" style="width: {{ a.pct }}%"></div></div>
                         </div>
-                        {% empty %}
-                        <p class="text-xs text-slate-500 italic">რეკომენდაციები განსაზღვრულია ინდივიდუალურ თერაპიულ გეგმაში.</p>
                         {% endfor %}
                     </div>
-                </div>
-            </div>
-
-            <!-- 10. Official Stamp, Sign-off & Legal Attestation -->
-            <div class="w-full bg-[#f8f9ff] border border-slate-200 rounded-xl p-4 sm:p-5 mt-8 avoid-break">
-                <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 text-xs">
-                    <span class="font-bold uppercase tracking-wider text-slate-800">ოკუპაციური თერაპევტის ხელმოწერა და კლინიკური ატესტაცია</span>
-                    <span class="text-slate-500 font-medium">გაცემის თარიღი: {{ report_date }}</span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-                    <!-- Left: Therapist Info & Signature Line -->
-                    <div class="space-y-2">
-                        <div>
-                            <span class="text-sm font-bold text-slate-900 block">{{ therapist_name }}</span>
-                            <span class="text-xs text-slate-600 block">წამყვანი ოკუპაციური თერაპევტი / სენსორული ინტეგრაცია</span>
-                            <span class="text-[10px] text-slate-400 font-semibold block mt-0.5">სალიცენზიო კოდი: #OT-GEO-{{ report.therapist.id|default:"01" }}</span>
-                        </div>
-                        <div class="pt-2">
-                            <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">ხელმოწერა:</span>
-                            <div class="h-8 border-b-2 border-dashed border-slate-300 w-4/5 flex items-end">
-                                <span class="text-xs text-slate-400 italic font-serif">{{ therapist_name }} (დამოწმებულია)</span>
+                    <div>
+                        <div class="text-[10px] font-bold uppercase text-slate-500 mb-2">ინდექსი სესიების მიხედვით</div>
+                        <div class="flex items-end gap-1 h-24 border-b border-l border-slate-200 px-1">
+                            {% for s in session_index %}
+                            <div class="flex-1 flex flex-col items-center justify-end h-full">
+                                <div class="w-full max-w-[18px] rounded-t {% if s.value and s.value >= 5 %}bg-emerald-500{% elif s.value and s.value >= 3.75 %}bg-sky-500{% else %}bg-amber-500{% endif %}" style="height: {{ s.pct }}%" title="{{ s.date|date:'d.m' }}: {{ s.value }}"></div>
                             </div>
+                            {% endfor %}
                         </div>
-                    </div>
-
-                    <!-- Right: Official Center Seal & PKI Stamp Marker -->
-                    <div class="flex sm:justify-end items-center gap-4">
-                        <div class="text-right">
-                            <div class="text-xs font-bold text-slate-800">ცენტრი</div>
-                            <div class="text-[10px] text-slate-500">ოფიციალურად დალუქული</div>
-                            <span class="inline-block text-[9.5px] font-mono text-slate-600 bg-slate-200 px-2 py-0.5 rounded mt-1">
-                                PKI: SHA256-{{ report.id|stringformat:"04d" }}X
-                            </span>
+                        <div class="flex gap-1 px-1 mt-0.5">
+                            {% for s in session_index %}<div class="flex-1 text-center text-[8px] text-slate-400">{{ s.date|date:"d.m" }}</div>{% endfor %}
                         </div>
-
-                        <!-- Circle Stamp Graphic Marker -->
-                        <div class="w-16 h-16 rounded-full border-2 border-dashed border-[#006a61] bg-[#eff4ff] flex flex-col items-center justify-center text-center text-[#006a61] shadow-inner shrink-0">
-                            <span class="material-symbols-outlined text-base leading-none">verified</span>
-                            <span class="text-[8px] font-black uppercase tracking-wider mt-0.5">ცენტრი</span>
-                            <span class="text-[6.5px] font-semibold text-slate-500">დამოწმებულია</span>
+                        {% if first_half_index is not None %}
+                        <div class="mt-2 grid grid-cols-3 gap-1.5 text-center text-[10px]">
+                            <div class="rounded bg-slate-50 border border-slate-200 p-1.5"><div class="text-slate-400 text-[9px]">I ნახევარი</div><strong>{{ first_half_index|floatformat:2 }}</strong></div>
+                            <div class="rounded bg-slate-50 border border-slate-200 p-1.5"><div class="text-slate-400 text-[9px]">II ნახევარი</div><strong>{{ second_half_index|floatformat:2 }}</strong></div>
+                            <div class="rounded p-1.5 {% if index_delta > 0 %}bg-emerald-50 text-emerald-800{% elif index_delta < 0 %}bg-rose-50 text-rose-800{% else %}bg-slate-50{% endif %}"><div class="text-[9px] opacity-70">ცვლილება</div><strong>{% if index_delta > 0 %}+{% endif %}{{ index_delta|floatformat:2 }}</strong></div>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
+            </section>
+            {% endif %}
 
-                <!-- Micro Legal Notice -->
-                <div class="mt-4 pt-2.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[10px] text-slate-500">
-                    <span>დოკუმენტი წარმოადგენს ოფიციალურ სამედიცინო ჩანაწერს. გაცემულია სამედიცინო საიდუმლოების დაცვის საერთაშორისო ნორმების შესაბამისად.</span>
-                    <span class="font-bold text-slate-600 mt-1 sm:mt-0">OT Progress Clinical Management</span>
+            <!-- ═════════ V. OUTCOMES & CHALLENGES ═════════ -->
+            <section class="mb-6">
+                <div class="sec-head"><span class="text-[12px] font-bold">V. ადაპტური შედეგები, ბარიერები და დაკვირვებები</span><span class="text-[9px] uppercase opacity-80">Functional Outcomes</span></div>
+                <div class="sec-body space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 avoid-break">
+                        <div class="rounded-lg border border-emerald-200 bg-white p-3">
+                            <div class="text-[10px] font-bold uppercase text-emerald-800 mb-2">✓ მიღწეული ადაპტური პასუხები</div>
+                            {% for o in outcomes %}
+                            <div class="mb-1.5">
+                                <div class="flex justify-between gap-2 text-[10px]"><span>{{ o.name }}</span><strong class="whitespace-nowrap">{{ o.count }}/{{ sessions_count }}</strong></div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width: {{ o.pct }}%"></div></div>
+                            </div>
+                            {% empty %}<div class="text-[10px] text-slate-400">არ დაფიქსირებულა.</div>{% endfor %}
+                        </div>
+                        <div class="rounded-lg border border-amber-200 bg-white p-3">
+                            <div class="text-[10px] font-bold uppercase text-amber-800 mb-2">⚠ გამოვლენილი ბარიერები</div>
+                            {% for c in challenges %}
+                            <div class="mb-1.5">
+                                <div class="flex justify-between gap-2 text-[10px]"><span>{{ c.name }}</span><strong class="whitespace-nowrap">{{ c.count }}/{{ sessions_count }}</strong></div>
+                                <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-amber-500" style="width: {{ c.pct }}%"></div></div>
+                            </div>
+                            {% empty %}<div class="text-[10px] text-slate-400">მნიშვნელოვანი ბარიერები არ დაფიქსირებულა.</div>{% endfor %}
+                        </div>
+                    </div>
+                    {% if section4_items %}
+                    <div class="rounded-lg bg-white border border-slate-200 p-3 narr text-slate-700">
+                        {% for p in section4_items %}<p>{{ p }}</p>{% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- ═════════ VI. SESSION JOURNAL ═════════ -->
+            {% if session_log %}
+            <section class="mb-6">
+                <div class="sec-head"><span class="text-[12px] font-bold">VI. სესიების ქრონოლოგიური ჟურნალი</span><span class="text-[9px] uppercase opacity-80">{{ sessions_count }} ჩანაწერი</span></div>
+                <div class="sec-body p-0">
+                    <table class="w-full text-[10px] border-collapse bg-white">
+                        <thead>
+                            <tr class="bg-slate-100 text-[9px] uppercase text-slate-500">
+                                <th class="p-2 text-left">თარიღი</th>
+                                <th class="p-2 text-center">ზონა</th>
+                                <th class="p-2 text-center">აქტ.</th>
+                                <th class="p-2 text-center">ინდექსი</th>
+                                <th class="p-2 text-left">კლინიკური ჩანაწერი</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in session_log %}
+                            <tr class="border-t border-slate-100 align-top">
+                                <td class="p-2 whitespace-nowrap"><div class="font-bold">{{ r.date }}</div><div class="text-slate-400">{{ r.duration }} წთ</div></td>
+                                <td class="p-2 text-center whitespace-nowrap">
+                                    <span class="inline-block w-2.5 h-2.5 rounded-full {{ r.init.dot }}"></span> → <span class="inline-block w-2.5 h-2.5 rounded-full {{ r.final.dot }}"></span>
+                                </td>
+                                <td class="p-2 text-center whitespace-nowrap"><strong>{{ r.activities_count }}</strong><div>{% for ic in r.domains %}{{ ic }}{% endfor %}</div></td>
+                                <td class="p-2 text-center font-bold text-[#006a61]">{% if r.index %}{{ r.index|floatformat:1 }}{% else %}—{% endif %}</td>
+                                <td class="p-2 text-slate-600 leading-snug">{{ r.note|default:"—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- ═════════ VII. RECOMMENDATIONS ═════════ -->
+            <section class="mb-6 avoid-break">
+                <div class="sec-head"><span class="text-[12px] font-bold">VII. კლინიკური რეკომენდაციები ოჯახს (Home Programme)</span><span class="text-[9px] uppercase opacity-80">ინტერვენცია სახლში</span></div>
+                <div class="sec-body space-y-1.5">
+                    {% for item in section5_items %}
+                    <div class="flex gap-2 bg-white border border-slate-200 rounded-lg p-2.5"><span class="text-[#006a61] font-black">{{ forloop.counter }}.</span><span>{{ item }}</span></div>
+                    {% empty %}
+                    <p class="text-slate-500 italic">რეკომენდაციები განსაზღვრულია ინდივიდუალურ თერაპიულ გეგმაში.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- ═════════ VIII. NEXT PERIOD FOCUS ═════════ -->
+            {% if section6_items %}
+            <section class="mb-6 avoid-break">
+                <div class="sec-head"><span class="text-[12px] font-bold">VIII. შემდეგი პერიოდის თერაპიული ფოკუსი</span><span class="text-[9px] uppercase opacity-80">გეგმა</span></div>
+                <div class="sec-body space-y-1.5">
+                    {% for item in section6_items %}
+                    <div class="flex gap-2 bg-white border border-slate-200 rounded-lg p-2.5"><span class="text-[#006a61] font-black">→</span><span>{{ item }}</span></div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- ═════════ SIGNATURE ═════════ -->
+            <div class="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4 avoid-break">
+                <div class="flex justify-between text-[10px] pb-2 mb-3 border-b border-slate-200">
+                    <span class="font-bold uppercase text-slate-700">თერაპევტის ხელმოწერა და ატესტაცია</span>
+                    <span class="text-slate-500">გაცემის თარიღი: {{ report_date }}</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
+                    <div>
+                        <div class="text-sm font-black">{{ therapist_name }}</div>
+                        <div class="text-[11px] text-slate-600">{{ therapist_title }}</div>
+                        {% if license_number %}<div class="text-[10px] text-slate-400">ლიცენზია: {{ license_number }}</div>{% endif %}
+                        <div class="mt-4 h-8 border-b-2 border-dashed border-slate-300 w-4/5"></div>
+                        <div class="text-[9px] text-slate-400 mt-0.5">ხელმოწერა</div>
+                    </div>
+                    <div class="flex sm:justify-end items-center gap-3">
+                        <div class="text-right">
+                            <div class="text-xs font-bold">{{ clinic_name }}</div>
+                            <div class="text-[10px] text-slate-500">ბეჭედი</div>
+                        </div>
+                        <div class="w-16 h-16 rounded-full border-2 border-dashed border-[#006a61] flex items-center justify-center text-[8px] font-black text-[#006a61] text-center leading-tight">ბეჭდის<br>ადგილი</div>
+                    </div>
+                </div>
+                <div class="mt-3 pt-2 border-t border-slate-200 text-[9px] text-slate-500">
+                    დოკუმენტი წარმოადგენს კონფიდენციალურ სამედიცინო ჩანაწერს და მომზადებულია სესიების სტრუქტურირებული კლინიკური ჩეკლისტების საფუძველზე • OT Progress
                 </div>
             </div>
 
@@ -494,11 +485,7 @@
 
     <script>
         if (new URLSearchParams(window.location.search).get('autoprint') === '1') {
-            window.addEventListener('load', function() {
-                setTimeout(function() {
-                    window.print();
-                }, 400);
-            });
+            window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 600); });
         }
     </script>
 </body>

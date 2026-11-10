@@ -802,82 +802,9 @@ def monthly_report_view(request, report_id):
     if not can_access_beneficiary(request.user, report.beneficiary):
         return HttpResponseForbidden()
 
-    from .pdf import _clean_line, _parse_alert_zone_counts
-    beneficiary = report.beneficiary
-    therapist = report.therapist
-    therapist_name = (
-        therapist.user.get_full_name() or therapist.user.username
-        if therapist else "—"
-    )
-    dob_str = str(beneficiary.date_of_birth) if beneficiary.date_of_birth else "—"
-    age_str = beneficiary.age_display if hasattr(beneficiary, "age_display") else ""
-    total_min = report.sessions_count * 50
-    doc_date = report.updated_at.strftime("%d.%m.%Y")
-    doc_status = "დამტკიცებული ვერსია" if report.is_finalized else "სამუშაო ვერსია"
-
-    sec1_raw = report.section_1_directions or ""
-    alert_zones_dict = _parse_alert_zone_counts(sec1_raw)
-    sec1_paragraphs = [
-        _clean_line(line) for line in sec1_raw.strip().split("\n")
-        if _clean_line(line) and "თვითრეგულაციის საწყისი მდგომარეობა" not in line and "თვითრეგულაციის საბოლოო მდგომარეობა" not in line
-    ]
-
-    sec2_raw = report.section_2_goals or ""
-    sec2_items = [
-        _clean_line(line) for line in sec2_raw.strip().split("\n")
-        if _clean_line(line) and not _clean_line(line).startswith("საანგარიშო პერიოდში დამუშავებული")
-    ]
-
-    active_goals = beneficiary.goals.filter(status="active")
-    goals_ctx = []
-    for g in active_goals:
-        pct = g.progress_percentage or 0
-        unit = g.unit_label or ""
-        domain = g.get_domain_display() if hasattr(g, "get_domain_display") else ""
-        goals_ctx.append({
-            "domain": domain,
-            "description": g.description.strip(),
-            "baseline": f"{g.baseline_numeric:.0f}",
-            "current": f"{g.current_numeric:.0f}",
-            "target": f"{g.target_numeric:.0f}",
-            "unit": unit,
-            "pct": pct,
-        })
-
-    sec4_raw = report.section_8_challenges or ""
-    sec4_items = [
-        _clean_line(line) for line in sec4_raw.strip().split("\n")
-        if _clean_line(line) and not _clean_line(line).startswith("სესიების დროს დაფიქსირებული")
-        and not _clean_line(line).startswith("თერაპევტის დაკვირვებები")
-    ]
-
-    sec5_raw = report.section_9_recommendations or ""
-    sec5_items = [
-        _clean_line(line) for line in sec5_raw.strip().split("\n")
-        if _clean_line(line) and not _clean_line(line).startswith("სესიებზე გამოყენებული")
-    ]
-
-    context = {
-        "report": report,
-        "report_date": doc_date,
-        "period_display": report.period_display,
-        "beneficiary": beneficiary,
-        "beneficiary_name": beneficiary.full_name,
-        "dob": dob_str,
-        "age": age_str,
-        "parent_name": getattr(beneficiary, "parent_name", ""),
-        "parent_phone": getattr(beneficiary, "parent_phone", ""),
-        "sessions_count": report.sessions_count,
-        "total_minutes": total_min,
-        "therapist_name": therapist_name,
-        "doc_status": doc_status,
-        "section1_paragraphs": sec1_paragraphs,
-        "alert_zones_dict": alert_zones_dict,
-        "section2_items": sec2_items,
-        "goals": goals_ctx,
-        "section4_items": sec4_items,
-        "section5_items": sec5_items,
-    }
+    from .report_data import build_report_context
+    context = build_report_context(report)
+    context["pdf_mode"] = False
     return render(request, "core/pdf/report_pdf.html", context)
 
 
