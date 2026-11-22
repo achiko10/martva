@@ -3,7 +3,7 @@ from .models import (
     TherapistProfile, Beneficiary, OccupationalProfile, SensoryProfile,
     Goal, SensorySystem, SensoryActivity, SensoryResponse, FunctionalOutcome,
     Session, SessionGoal, SessionSensoryActivity, MonthlyReport, ReportRevision,
-    ScheduleSlot
+    ScheduleSlot, BeneficiaryTeamNote
 )
 
 
@@ -47,6 +47,12 @@ class SensoryProfileInline(admin.StackedInline):
     extra = 0
 
 
+class BeneficiaryTeamNoteInline(admin.TabularInline):
+    model = BeneficiaryTeamNote
+    extra = 0
+    readonly_fields = ["created_at"]
+
+
 class GoalInline(admin.TabularInline):
     model = Goal
     extra = 0
@@ -58,7 +64,8 @@ class BeneficiaryAdmin(StaffFullAccessAdmin):
     list_display = ["first_name", "last_name", "date_of_birth", "age_display", "therapist", "is_active", "start_date"]
     list_filter = ["is_active", "therapist", "start_date"]
     search_fields = ["first_name", "last_name", "notes"]
-    inlines = [OccupationalProfileInline, SensoryProfileInline, GoalInline]
+    filter_horizontal = ["co_therapists"]
+    inlines = [OccupationalProfileInline, SensoryProfileInline, GoalInline, BeneficiaryTeamNoteInline]
 
 
 @admin.register(OccupationalProfile)
@@ -170,3 +177,14 @@ class ScheduleSlotAdmin(StaffFullAccessAdmin):
         queryset.update(status="missed")
 
 
+
+
+@admin.register(BeneficiaryTeamNote)
+class BeneficiaryTeamNoteAdmin(StaffFullAccessAdmin):
+    list_display = ["beneficiary", "author", "created_at", "note_preview"]
+    list_filter = ["author", "created_at"]
+    search_fields = ["beneficiary__first_name", "beneficiary__last_name", "note"]
+
+    @admin.display(description="შენიშვნა")
+    def note_preview(self, obj):
+        return (obj.note[:60] + "...") if len(obj.note) > 60 else obj.note

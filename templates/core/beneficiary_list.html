@@ -34,6 +34,15 @@
         </div>
 
         <div class="flex items-center gap-2">
+            {% if all_therapists %}
+            <select name="therapist" class="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#006a61]">
+                <option value="">ყველა თერაპევტი</option>
+                {% for t in all_therapists %}
+                <option value="{{ t.id }}" {% if therapist_id == t.id|stringformat:"s" %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+
             <select name="status" class="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#006a61]">
                 <option value="active" {% if status_filter == 'active' %}selected{% endif %}>აქტიური</option>
                 <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>არააქტიური</option>
@@ -62,6 +71,9 @@
                             </a>
                             <div class="text-xs text-slate-500 font-medium">
                                 ასაკი: {{ b.age_display }}
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-medium truncate mt-0.5" title="{{ b.assigned_therapists_display }}">
+                                👨‍⚕️ {{ b.assigned_therapists_display }}
                             </div>
                         </div>
                     </div>

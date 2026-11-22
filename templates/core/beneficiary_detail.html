@@ -17,6 +17,16 @@
                     <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">
                         {{ beneficiary.age_display }}
                     </span>
+                    {% if beneficiary.therapist %}
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-[#006a61] border border-teal-200">
+                        👨‍⚕️ {{ beneficiary.therapist }} (ძირითადი)
+                    </span>
+                    {% endif %}
+                    {% for ct in co_therapists %}
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        🤝 {{ ct }} (თანათერაპევტი)
+                    </span>
+                    {% endfor %}
                 </div>
                 <p class="text-xs text-slate-500 mt-0.5 truncate">
                     დაბ: {{ beneficiary.date_of_birth|date:"d.m.Y" }} • გეგმა: კვირაში {{ beneficiary.weekly_sessions_planned }} სესია ({{ beneficiary.session_duration_minutes }} წთ)
@@ -245,8 +255,72 @@
             </details>
         </div>
 
-        <!-- RIGHT COLUMN: Recent Sessions & Monthly Reports (5 cols) -->
+        <!-- RIGHT COLUMN: Team Journal, Recent Sessions & Monthly Reports (5 cols) -->
         <div class="lg:col-span-5 space-y-4">
+
+            <!-- Team Handover & Communication Journal Card -->
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center text-xs font-bold">💬</span>
+                        <h2 class="text-sm font-bold text-slate-900">გუნდური კომუნიკაციის ჟურნალი</h2>
+                    </div>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold">
+                        {{ team_notes|length }} ჩანაწერი
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-500">
+                    გაუზიარეთ მნიშვნელოვანი დაკვირვებები და რეკომენდაციები თანათერაპევტებს.
+                </p>
+
+                <!-- Add Note Form -->
+                <form method="post" class="space-y-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_team_note">
+                    <div class="relative">
+                        <textarea name="note" rows="2" required
+                                  placeholder="დაწერეთ შენიშვნა გუნდისთვის (მაგ: დღეს სესიისას იყო მგრძნობიარე ხმაურზე, რეკომენდებულია...)"
+                                  class="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-xs">
+                            + ჩანაწერის დამატება
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Notes List -->
+                <div class="space-y-2 max-h-64 overflow-y-auto pr-1 divide-y divide-slate-100">
+                    {% for tn in team_notes %}
+                    <div class="pt-2 pb-1 space-y-1">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                {{ tn.author|default:"თერაპევტი" }}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-400">{{ tn.created_at|date:"d.m.Y H:i" }}</span>
+                                {% if is_admin or tn.author == current_profile %}
+                                <form method="post" class="inline" onsubmit="return confirm('წაიშალოს ეს შენიშვნა?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_team_note">
+                                    <input type="hidden" name="note_id" value="{{ tn.id }}">
+                                    <button type="submit" class="text-rose-500 hover:text-rose-700 text-[10px] font-bold">✕</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-700 bg-slate-50/80 p-2 rounded-lg border border-slate-100 whitespace-pre-wrap leading-relaxed">
+                            {{ tn.note }}
+                        </p>
+                    </div>
+                    {% empty %}
+                    <div class="py-4 text-center text-xs text-slate-400">
+                        გუნდური შენიშვნები ჯერ არ არის.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
 
             <!-- Recent Sessions Card -->
             <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm space-y-3">
@@ -261,8 +335,15 @@
                     {% for s in sessions|slice:":8" %}
                     <a href="{% url 'session_detail' s.id %}" class="py-2.5 flex items-center justify-between hover:bg-slate-50 px-2 -mx-2 rounded-xl transition">
                         <div class="min-w-0 pr-2">
-                            <div class="text-xs font-bold text-slate-800">{{ s.date|date:"d.m.Y" }} ({{ s.duration_minutes }} წთ)</div>
-                            <div class="text-[11px] text-slate-500 truncate">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-bold text-slate-800">{{ s.date|date:"d.m.Y" }} ({{ s.duration_minutes }} წთ)</span>
+                                {% if s.therapist %}
+                                <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
+                                    {{ s.therapist }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-[11px] text-slate-500 truncate mt-0.5">
                                 აქტივობები: {{ s.sensory_activities.count }} •
                                 ზონა: {{ s.get_initial_state_display|truncatechars:14 }} → {{ s.get_final_state_display|truncatechars:14 }}
                             </div>

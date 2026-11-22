@@ -33,7 +33,13 @@ class Beneficiary(models.Model):
         null=True,
         blank=True,
         related_name="beneficiaries",
-        verbose_name="თერაპევტი"
+        verbose_name="ძირითადი თერაპევტი"
+    )
+    co_therapists = models.ManyToManyField(
+        TherapistProfile,
+        blank=True,
+        related_name="shared_beneficiaries",
+        verbose_name="თანათერაპევტები (გაზიარებული წვდომა)"
     )
     session_duration_minutes = models.PositiveIntegerField(default=50, verbose_name="სესიის ხანგრძლივობა (წთ)")
     weekly_sessions_planned = models.PositiveIntegerField(default=2, verbose_name="კვირაში დაგეგმილი სესიები")
@@ -74,6 +80,54 @@ class Beneficiary(models.Model):
         if years <= 0:
             return f"{months} თვე"
         return f"{years} წელი, {months} თვე" if months > 0 else f"{years} წელი"
+
+    def is_assigned_to(self, profile):
+        """Checks if a therapist profile is the lead or a co-therapist of this beneficiary."""
+        if not profile:
+            return False
+        if self.therapist_id == profile.id:
+            return True
+        return self.co_therapists.filter(id=profile.id).exists()
+
+    @property
+    def assigned_therapists_display(self):
+        """Returns readable string of all therapists assigned to this child."""
+        names = []
+        if self.therapist:
+            names.append(str(self.therapist))
+        for ct in self.co_therapists.all():
+            ct_name = str(ct)
+            if ct_name not in names:
+                names.append(ct_name)
+        return ", ".join(names) if names else "არ არის მითითებული"
+
+
+class BeneficiaryTeamNote(models.Model):
+    beneficiary = models.ForeignKey(
+        Beneficiary,
+        on_delete=models.CASCADE,
+        related_name="team_notes",
+        verbose_name="ბენეფიციარი"
+    )
+    author = models.ForeignKey(
+        TherapistProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="authored_team_notes",
+        verbose_name="ავტორი თერაპევტი"
+    )
+    note = models.TextField(verbose_name="გუნდური შენიშვნა / კომუნიკაცია")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="შექმნის დრო")
+
+    class Meta:
+        verbose_name = "გუნდური შენიშვნა"
+        verbose_name_plural = "გუნდური შენიშვნები"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        author_name = str(self.author) if self.author else "სისტემა"
+        return f"{self.beneficiary.full_name} — {author_name} ({self.created_at.strftime('%d.%m.%Y %H:%M')})"
 
 
 class OccupationalProfile(models.Model):
@@ -772,3 +826,52 @@ class ScheduleSlot(models.Model):
         s = self.start_time.strftime("%H:%M")
         e = self.end_time.strftime("%H:%M") if self.end_time else ""
         return f"{s} - {e}" if e else s
+
+    @property
+    def color_classes(self):
+        """Returns background, border, text, and badge Tailwind classes according to therapy type and status."""
+        if self.status == "completed":
+            return {
+                "card": "bg-emerald-50/90 border-l-4 border-emerald-500 text-emerald-950 shadow-xs hover:border-emerald-600",
+                "badge": "bg-emerald-100 text-emerald-800",
+                "dot": "bg-emerald-500",
+            }
+        elif self.status == "missed":
+            return {
+                "card": "bg-rose-50/90 border-l-4 border-rose-500 text-rose-950 opacity-80 hover:opacity-100",
+                "badge": "bg-rose-100 text-rose-800",
+                "dot": "bg-rose-500",
+            }
+
+        # Scheduled - Color by therapy type
+        tt = (self.therapy_type or "").strip()
+        if "სენსორული" in tt:
+            return {
+                "card": "bg-purple-50/90 border-l-4 border-purple-500 text-purple-950 shadow-xs hover:shadow-md",
+                "badge": "bg-purple-100 text-purple-800",
+                "dot": "bg-purple-500",
+            }
+        elif "კვების" in tt:
+            return {
+                "card": "bg-teal-50/90 border-l-4 border-teal-500 text-teal-950 shadow-xs hover:shadow-md",
+                "badge": "bg-teal-100 text-teal-800",
+                "dot": "bg-teal-500",
+            }
+        elif "მოტორული" in tt:
+            return {
+                "card": "bg-amber-50/90 border-l-4 border-amber-500 text-amber-950 shadow-xs hover:shadow-md",
+                "badge": "bg-amber-100 text-amber-800",
+                "dot": "bg-amber-500",
+            }
+        elif "პირველადი" in tt or "შეფასება" in tt:
+            return {
+                "card": "bg-indigo-50/90 border-l-4 border-indigo-500 text-indigo-950 shadow-xs hover:shadow-md",
+                "badge": "bg-indigo-100 text-indigo-800",
+                "dot": "bg-indigo-500",
+            }
+        else:
+            return {
+                "card": "bg-blue-50/90 border-l-4 border-blue-500 text-blue-950 shadow-xs hover:shadow-md",
+                "badge": "bg-blue-100 text-blue-800",
+                "dot": "bg-blue-500",
+            }

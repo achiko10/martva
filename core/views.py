@@ -16,7 +16,7 @@ from .models import (
     TherapistProfile, Beneficiary, OccupationalProfile, SensoryProfile,
     Goal, SensorySystem, SensoryActivity, SensoryResponse, FunctionalOutcome,
     Session, SessionGoal, SessionSensoryActivity, MonthlyReport, ReportRevision,
-    ScheduleSlot
+    ScheduleSlot, BeneficiaryTeamNote
 )
 from .reports import generate_monthly_report_content
 from .pdf import generate_report_pdf
@@ -31,10 +31,10 @@ def get_or_create_therapist(user):
 
 
 def is_admin_user(user):
-    """Checks whether user has superuser, staff, or admin therapist privileges."""
+    """Checks whether user has superuser or admin therapist privileges."""
     if not user or not user.is_authenticated:
         return False
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         return True
     profile = get_or_create_therapist(user)
     return bool(profile and profile.is_admin_role)
@@ -50,26 +50,28 @@ def add_calendar_months(source_date, months):
 
 
 def get_user_beneficiaries(user):
-    """Filter beneficiaries based on user role"""
+    """Filter beneficiaries based on user role: admin sees all, therapists see assigned/shared only."""
     if not user.is_authenticated:
         return Beneficiary.objects.none()
     if is_admin_user(user):
         return Beneficiary.objects.all()
     profile = get_or_create_therapist(user)
-    return Beneficiary.objects.filter(Q(therapist=profile) | Q(therapist__isnull=True))
+    if not profile:
+        return Beneficiary.objects.none()
+    return Beneficiary.objects.filter(
+        Q(therapist=profile) | Q(co_therapists=profile)
+    ).distinct()
 
 
 def can_access_beneficiary(user, beneficiary):
-    if not user.is_authenticated:
+    if not user or not user.is_authenticated:
         return False
     if is_admin_user(user):
         return True
-    if beneficiary.therapist is None:
-        return True
     profile = get_or_create_therapist(user)
-    if beneficiary.therapist == profile:
-        return True
-    return False
+    if not profile or not beneficiary:
+        return False
+    return beneficiary.is_assigned_to(profile)
 
 
 def custom_login_view(request):
@@ -227,15 +229,23 @@ def beneficiary_create_view(request):
                 weekly_sessions_planned=weekly_sessions,
                 notes=notes
             )
+            # Assign co-therapists if any selected
+            co_ids = request.POST.getlist("co_therapists")
+            if co_ids:
+                b.co_therapists.set(co_ids)
+
             # Auto-create empty occupational & sensory profiles
             OccupationalProfile.objects.create(beneficiary=b)
             SensoryProfile.objects.create(beneficiary=b)
             messages.success(request, f"ბენეფიციარი {b.full_name} წარმატებით დაემატა.")
             return redirect("beneficiary_detail", beneficiary_id=b.id)
 
-    therapists = TherapistProfile.objects.all() if is_admin_user(request.user) else None
+    admin_flag = is_admin_user(request.user)
+    therapists = TherapistProfile.objects.all() if admin_flag else None
+    all_therapists = TherapistProfile.objects.all()
     return render(request, "core/beneficiary_form.html", {
         "therapists": therapists,
+        "all_therapists": all_therapists,
         "is_create": True,
         "today_date": date.today().isoformat(),
     })
@@ -281,6 +291,39 @@ def beneficiary_detail_view(request, beneficiary_id):
             sens_profile.save()
             messages.success(request, "სენსორული პროფილი წარმატებით განახლდა.")
             return redirect(f"{request.path}?tab=sensory")
+
+        elif action == "add_team_note":
+            note_text = request.POST.get("note", "").strip()
+            if note_text:
+                profile = get_or_create_therapist(request.user)
+                BeneficiaryTeamNote.objects.create(
+                    beneficiary=beneficiary,
+                    author=profile,
+                    note=note_text
+                )
+                messages.success(request, "გუნდური შენიშვნა წარმატებით დაემატა.")
+            return redirect(f"{request.path}?tab=team_notes")
+
+        elif action == "delete_team_note":
+            note_id = request.POST.get("note_id")
+            note = get_object_or_404(BeneficiaryTeamNote, id=note_id, beneficiary=beneficiary)
+            profile = get_or_create_therapist(request.user)
+            if is_admin_user(request.user) or note.author == profile:
+                note.delete()
+                messages.success(request, "შენიშვნა წაიშალა.")
+            else:
+                messages.error(request, "სხვისი შენიშვნის წაშლის უფლება არ გაქვთ.")
+            return redirect(f"{request.path}?tab=team_notes")
+
+        elif action == "update_co_therapists":
+            profile = get_or_create_therapist(request.user)
+            if is_admin_user(request.user) or (beneficiary.therapist and beneficiary.therapist == profile):
+                co_ids = request.POST.getlist("co_therapists")
+                beneficiary.co_therapists.set(co_ids)
+                messages.success(request, "თანათერაპევტების სია განახლდა.")
+            else:
+                messages.error(request, "თანათერაპევტების მართვის უფლება აქვს მხოლოდ ძირითად თერაპევტს ან ადმინისტრატორს.")
+            return redirect(f"{request.path}?tab=overview")
 
         elif action == "create_goal":
             domain = request.POST.get("domain", "sensory_regulation")
@@ -342,8 +385,15 @@ def beneficiary_detail_view(request, beneficiary_id):
             return redirect(f"{request.path}?tab=goals")
 
     goals = beneficiary.goals.all()
-    sessions = beneficiary.sessions.all()[:15]
+    sessions = beneficiary.sessions.select_related("therapist", "therapist__user").all()[:25]
     reports = beneficiary.monthly_reports.all()
+    team_notes = beneficiary.team_notes.select_related("author", "author__user").all()
+    current_profile = get_or_create_therapist(request.user)
+    is_admin = is_admin_user(request.user)
+    is_lead = bool(current_profile and beneficiary.therapist_id == current_profile.id)
+    all_therapists = TherapistProfile.objects.all()
+    co_therapists = beneficiary.co_therapists.select_related("user").all()
+    co_therapist_ids = set(beneficiary.co_therapists.values_list("id", flat=True))
 
     context = {
         "beneficiary": beneficiary,
@@ -353,6 +403,13 @@ def beneficiary_detail_view(request, beneficiary_id):
         "goals": goals,
         "sessions": sessions,
         "reports": reports,
+        "team_notes": team_notes,
+        "current_profile": current_profile,
+        "is_admin": is_admin,
+        "is_lead": is_lead,
+        "all_therapists": all_therapists,
+        "co_therapists": co_therapists,
+        "co_therapist_ids": co_therapist_ids,
         "domain_choices": Goal.DOMAIN_CHOICES,
         "status_choices": Goal.STATUS_CHOICES,
     }
@@ -386,14 +443,23 @@ def beneficiary_edit_view(request, beneficiary_id):
             t_id = request.POST.get("therapist")
             beneficiary.therapist = TherapistProfile.objects.filter(id=t_id).first() if t_id else None
 
+        current_profile = get_or_create_therapist(request.user)
+        if admin_flag or (beneficiary.therapist and beneficiary.therapist == current_profile):
+            co_ids = request.POST.getlist("co_therapists")
+            beneficiary.co_therapists.set(co_ids)
+
         beneficiary.save()
         messages.success(request, "მონაცემები განახლდა.")
         return redirect("beneficiary_detail", beneficiary_id=beneficiary.id)
 
     therapists = TherapistProfile.objects.all() if admin_flag else None
+    all_therapists = TherapistProfile.objects.all()
+    co_therapist_ids = set(beneficiary.co_therapists.values_list("id", flat=True))
     return render(request, "core/beneficiary_form.html", {
         "beneficiary": beneficiary,
         "therapists": therapists,
+        "all_therapists": all_therapists,
+        "co_therapist_ids": co_therapist_ids,
         "is_create": False,
         "today_date": date.today().isoformat(),
     })
@@ -942,21 +1008,30 @@ def schedule_view(request):
         9: "სექტემბერი", 10: "ოქტომბერი", 11: "ნოემბერი", 12: "დეკემბერი"
     }
 
-    if is_admin_user(user):
-        slots = list(
-            ScheduleSlot.objects.filter(date__range=[start_of_week, end_of_week])
-            .select_related("beneficiary", "therapist")
-            .order_by("date", "start_time")
-        )
+    admin_flag = is_admin_user(user)
+    slots_qs = (
+        ScheduleSlot.objects.filter(date__range=[start_of_week, end_of_week])
+        .select_related("beneficiary", "therapist")
+    )
+
+    filter_therapist_id = request.GET.get("therapist", "").strip()
+    if admin_flag:
+        if filter_therapist_id:
+            slots_qs = slots_qs.filter(therapist_id=filter_therapist_id)
     else:
-        slots = list(
-            ScheduleSlot.objects.filter(
-                Q(therapist=profile) | Q(therapist__isnull=True),
-                date__range=[start_of_week, end_of_week]
-            )
-            .select_related("beneficiary", "therapist")
-            .order_by("date", "start_time")
-        )
+        # Strict personal isolation: therapists see ONLY their own schedule slots!
+        slots_qs = slots_qs.filter(therapist=profile)
+
+    # Beneficiary Quick-Filter
+    filter_beneficiary_id = request.GET.get("beneficiary_id", "").strip()
+    if filter_beneficiary_id:
+        try:
+            b_filter_id_int = int(filter_beneficiary_id)
+            slots_qs = slots_qs.filter(beneficiary_id=b_filter_id_int)
+        except ValueError:
+            pass
+
+    slots = list(slots_qs.order_by("date", "start_time"))
 
     # Enrich recurring slots with total count and final date of the series
     series_ids = {s.series_id for s in slots if s.series_id}
@@ -1068,6 +1143,10 @@ def schedule_view(request):
         "beneficiaries": beneficiaries,
         "today_str": today.strftime("%Y-%m-%d"),
         "therapy_types": [t[0] for t in ScheduleSlot.THERAPY_TYPES],
+        "is_admin": admin_flag,
+        "all_therapists": TherapistProfile.objects.all() if admin_flag else None,
+        "filter_therapist_id": filter_therapist_id,
+        "filter_beneficiary_id": filter_beneficiary_id,
     }
     return render(request, "core/schedule.html", context)
 
@@ -1092,6 +1171,18 @@ def schedule_add_view(request):
             start_time = datetime.strptime(time_str, "%H:%M").time()
         except ValueError:
             start_time = time(10, 0)
+
+        # Smart Conflict Warning for Therapist Schedule
+        existing_conflict = ScheduleSlot.objects.filter(
+            therapist=profile,
+            date=slot_date,
+            start_time=start_time
+        ).select_related("beneficiary").first()
+        if existing_conflict:
+            messages.warning(
+                request,
+                f"ყურადღება: {slot_date.strftime('%d.%m.%Y')} {start_time.strftime('%H:%M')}-ზე უკვე გაქვთ ჩანიშნული ვიზიტი ({existing_conflict.beneficiary.full_name}). ვიზიტი მაინც დაემატა."
+            )
 
         try:
             duration = int(request.POST.get("duration_minutes", 50) or 50)
@@ -1214,8 +1305,9 @@ def schedule_add_view(request):
 @login_required
 def schedule_edit_view(request, slot_id):
     slot = get_object_or_404(ScheduleSlot, id=slot_id)
-    if not can_access_beneficiary(request.user, slot.beneficiary):
-        return HttpResponseForbidden()
+    profile = get_or_create_therapist(request.user)
+    if not (is_admin_user(request.user) or slot.therapist == profile):
+        return HttpResponseForbidden("თქვენ არ გაქვთ სხვისი განრიგის რედაქტირების უფლება.")
 
     if request.method == "POST":
         beneficiary_id = request.POST.get("beneficiary")
@@ -1291,8 +1383,9 @@ def schedule_status_view(request, slot_id):
 @login_required
 def schedule_delete_view(request, slot_id):
     slot = get_object_or_404(ScheduleSlot, id=slot_id)
-    if not can_access_beneficiary(request.user, slot.beneficiary):
-        return HttpResponseForbidden()
+    profile = get_or_create_therapist(request.user)
+    if not (is_admin_user(request.user) or slot.therapist == profile):
+        return HttpResponseForbidden("თქვენ არ გაქვთ სხვისი განრიგის წაშლის უფლება.")
 
     if request.method == "POST":
         delete_mode = request.POST.get("delete_mode", "single")

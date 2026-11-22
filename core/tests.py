@@ -128,9 +128,9 @@ class OTProgressCoreTests(TestCase):
 
         self.assertEqual(content["sessions_count"], 1)
         self.assertIn("დავით ლომიძე", content["section_1_directions"])
-        self.assertIn("50 წუთს", content["section_1_directions"])
+        self.assertIn("50 წუთ", content["section_1_directions"])
         self.assertIn("პროპრიოცეპტული", content["section_2_goals"])
-        self.assertIn("დახმარების დონის", content["section_3_work_performed"])
+        self.assertIn("დახმარების დონე", content["section_3_work_performed"])
         self.assertIn("ყურადღების გაფანტვა", content["section_8_challenges"])
 
     def test_pdf_generation_succeeds(self):
@@ -213,6 +213,46 @@ class OTProgressCoreTests(TestCase):
         goal.refresh_from_db()
         self.assertEqual(goal.current_numeric, 65.0)
         self.assertEqual(goal.progress_percentage, 75)  # (65 - 20) / (80 - 20) = 45 / 60 = 75%
+
+    def test_multi_therapist_isolation_and_sharing(self):
+        """Verify strict isolation between therapists and cooperative sharing via co_therapists"""
+        # Create second therapist
+        user2 = User.objects.create_user(username="therapist2", password="password123", first_name="ნინო", last_name="ბერიძე")
+        profile2 = TherapistProfile.objects.create(user=user2)
+
+        # By default, child belongs to self.therapist_profile
+        self.assertTrue(self.beneficiary.is_assigned_to(self.therapist_profile))
+        self.assertFalse(self.beneficiary.is_assigned_to(profile2))
+
+        # Log in as therapist2
+        self.client.login(username="therapist2", password="password123")
+
+        # 1. Therapist2 cannot see beneficiary in list
+        resp = self.client.get(reverse("beneficiary_list"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, self.beneficiary.full_name)
+
+        # 2. Therapist2 forbidden from child profile
+        resp = self.client.get(reverse("beneficiary_detail", args=[self.beneficiary.id]))
+        self.assertEqual(resp.status_code, 403)
+
+        # 3. Add therapist2 as co-therapist
+        self.beneficiary.co_therapists.add(profile2)
+        self.assertTrue(self.beneficiary.is_assigned_to(profile2))
+
+        # 4. Now therapist2 CAN see and access child profile
+        resp = self.client.get(reverse("beneficiary_detail", args=[self.beneficiary.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, self.beneficiary.full_name)
+
+        # 5. Therapist2 can add team handover note
+        resp = self.client.post(reverse("beneficiary_detail", args=[self.beneficiary.id]), {
+            "action": "add_team_note",
+            "note": "სენსორული დაკვირვება თანათერაპევტისგან"
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(self.beneficiary.team_notes.filter(author=profile2).exists())
+
 
 
 

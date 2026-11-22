@@ -87,7 +87,7 @@
             <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
                 <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 shrink-0 mr-1">თვეები:</span>
                 {% for m in quick_months %}
-                <a href="?month={{ m.ym }}"
+                <a href="?month={{ m.ym }}{% if filter_beneficiary_id %}&beneficiary_id={{ filter_beneficiary_id }}{% endif %}{% if filter_therapist_id %}&therapist={{ filter_therapist_id }}{% endif %}"
                    class="shrink-0 px-2.5 py-1 rounded-lg text-[11px] font-bold transition border
                    {% if m.is_active %}
                        bg-[#006a61] text-white border-[#006a61] shadow-sm
@@ -109,6 +109,50 @@
                         class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition text-slate-600">
                     📅 კვირის ბადე (6 დღე)
                 </button>
+            </div>
+        </div>
+
+        <!-- Filters Row: Child Quick-Filter & Admin Therapist Filter -->
+        <div class="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Beneficiary Quick Filter -->
+                <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase">👶 ბავშვი:</span>
+                    <select onchange="applyScheduleFilter('beneficiary_id', this.value)" class="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer">
+                        <option value="">ყველა ბავშვი</option>
+                        {% for b in beneficiaries %}
+                        <option value="{{ b.id }}" {% if filter_beneficiary_id == b.id|stringformat:"s" %}selected{% endif %}>{{ b.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Admin Therapist Filter (Only visible to admin) -->
+                {% if is_admin and all_therapists %}
+                <div class="flex items-center gap-1.5 bg-purple-50/70 border border-purple-200 rounded-xl px-2.5 py-1">
+                    <span class="text-[10px] font-bold text-purple-700 uppercase">👨‍⚕️ თერაპევტი:</span>
+                    <select onchange="applyScheduleFilter('therapist', this.value)" class="bg-transparent text-xs font-bold text-purple-950 focus:outline-none cursor-pointer">
+                        <option value="">ყველა თერაპევტი (საერთო)</option>
+                        {% for t in all_therapists %}
+                        <option value="{{ t.id }}" {% if filter_therapist_id == t.id|stringformat:"s" %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                {% if filter_beneficiary_id or filter_therapist_id %}
+                <button type="button" onclick="clearScheduleFilters()" class="text-[11px] font-bold text-rose-500 hover:text-rose-700 underline px-1">
+                    ✕ ფილტრის გასუფთავება
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Therapy Type Color Legend -->
+            <div class="hidden xl:flex items-center gap-3 text-[11px] text-slate-500 font-medium">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> სენსორული</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span> კვების</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> მოტორული</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> შეფასება</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> ოკუპაციური</span>
             </div>
         </div>
     </div>
@@ -188,14 +232,7 @@
                             '{{ slot.series_total }}',
                             '{{ slot.series_end_str }}'
                         )"
-                         class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3
-                         {% if slot.status == 'completed' %}
-                             bg-emerald-50/70 border-emerald-200 text-emerald-950
-                         {% elif slot.status == 'missed' %}
-                             bg-rose-50/70 border-rose-200 text-rose-950
-                         {% else %}
-                             bg-teal-50/50 border-teal-200/90 text-slate-900
-                         {% endif %}">
+                         class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 {{ slot.color_classes.card }}">
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="px-2 py-0.5 rounded-md bg-white border border-slate-200 text-xs font-black text-slate-800">
@@ -322,14 +359,7 @@
                                         '{{ slot.series_total }}',
                                         '{{ slot.series_end_str }}'
                                     )"
-                                     class="px-2 py-1.5 rounded-lg border text-left transition shadow-2xs cursor-pointer select-none hover:shadow-md
-                                    {% if slot.status == 'completed' %}
-                                        bg-emerald-50/95 border-emerald-300 text-emerald-950
-                                    {% elif slot.status == 'missed' %}
-                                        bg-rose-50/90 border-rose-300 text-rose-950 opacity-80
-                                    {% else %}
-                                        bg-teal-50/90 border-teal-300 text-teal-950 hover:bg-teal-100/80
-                                    {% endif %}">
+                                     class="px-2 py-1.5 rounded-lg border text-left transition shadow-2xs cursor-pointer select-none hover:shadow-md {{ slot.color_classes.card }}">
 
                                     <div class="flex items-center justify-between gap-1">
                                         <span class="text-[10px] font-extrabold opacity-80 leading-none">
@@ -674,6 +704,24 @@
 <script>
     let currentPopupSlot = null;
     const DAY_NAMES_SHORT = ['ორშ', 'სამ', 'ოთხ', 'ხუთ', 'პარ', 'შაბ', 'კვ'];
+
+    // ── Quick Filter Functions ─────────────────────────────────────────────
+    function applyScheduleFilter(param, val) {
+        const url = new URL(window.location.href);
+        if (val) {
+            url.searchParams.set(param, val);
+        } else {
+            url.searchParams.delete(param);
+        }
+        window.location.href = url.toString();
+    }
+
+    function clearScheduleFilters() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('beneficiary_id');
+        url.searchParams.delete('therapist');
+        window.location.href = url.toString();
+    }
 
     // ── Mobile View Mode Switcher (Day Agenda vs 6-Day Week Grid) ─────────
     function setMobileScheduleMode(mode) {
