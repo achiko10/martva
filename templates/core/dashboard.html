@@ -34,6 +34,100 @@
         </div>
     </div>
 
+    <!-- ═══════════ Monthly Statistics Panel ═══════════ -->
+    <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">📊</span>
+                <div>
+                    <h2 class="text-sm font-extrabold text-slate-900">{{ current_month_name }}ის სტატისტიკა</h2>
+                    <p class="text-[10px] text-slate-500">{{ current_year }} წელი • დარჩენილია {{ stats.days_left }} სამუშაო დღე</p>
+                </div>
+            </div>
+            <a href="{% url 'schedule' %}" class="text-[11px] font-bold text-[#006a61] hover:underline hidden sm:inline">
+                კალენდარი →
+            </a>
+        </div>
+
+        <!-- Stat Cards Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <!-- Total Scheduled -->
+            <div class="p-3 rounded-xl bg-blue-50/80 border border-blue-200/60">
+                <div class="text-2xl sm:text-3xl font-black text-blue-700 leading-none">{{ stats.month_scheduled }}</div>
+                <div class="text-[11px] font-bold text-blue-600 mt-1.5">სულ დაგეგმილი</div>
+                <div class="text-[10px] text-blue-500/80 mt-0.5">ამ თვეში ჯამური</div>
+            </div>
+
+            <!-- Completed -->
+            <div class="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/60">
+                <div class="text-2xl sm:text-3xl font-black text-emerald-700 leading-none">{{ stats.month_completed }}</div>
+                <div class="text-[11px] font-bold text-emerald-600 mt-1.5">✓ ჩატარებული</div>
+                <div class="text-[10px] text-emerald-500/80 mt-0.5">წარმატებით სესია</div>
+            </div>
+
+            <!-- Missed -->
+            <div class="p-3 rounded-xl bg-rose-50/80 border border-rose-200/60">
+                <div class="text-2xl sm:text-3xl font-black text-rose-700 leading-none">{{ stats.month_missed }}</div>
+                <div class="text-[11px] font-bold text-rose-600 mt-1.5">✕ გაცდენა</div>
+                <div class="text-[10px] text-rose-500/80 mt-0.5">გამოტოვებული</div>
+            </div>
+
+            <!-- Attendance Rate -->
+            <div class="p-3 rounded-xl bg-amber-50/80 border border-amber-200/60">
+                <div class="text-2xl sm:text-3xl font-black leading-none
+                    {% if stats.attendance_rate >= 80 %}text-emerald-700
+                    {% elif stats.attendance_rate >= 50 %}text-amber-700
+                    {% else %}text-rose-700{% endif %}">
+                    {{ stats.attendance_rate }}%
+                </div>
+                <div class="text-[11px] font-bold text-amber-700 mt-1.5">დასწრება</div>
+                <div class="text-[10px] text-amber-500/80 mt-0.5">ჩატარებული / ჯამური</div>
+            </div>
+        </div>
+
+        <!-- Attendance Progress Bar -->
+        <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-[11px] font-bold">
+                <span class="text-slate-700">თვის მიმდინარეობა</span>
+                <span class="text-slate-500">{{ stats.month_completed }} / {{ stats.month_scheduled }} ვიზიტი</span>
+            </div>
+            <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                {% if stats.month_scheduled > 0 %}
+                <div class="h-full bg-emerald-500 transition-all duration-500" style="width: {% widthratio stats.month_completed stats.month_scheduled 100 %}%"></div>
+                <div class="h-full bg-rose-400 transition-all duration-500" style="width: {% widthratio stats.month_missed stats.month_scheduled 100 %}%"></div>
+                <div class="h-full bg-amber-300/60 transition-all duration-500" style="width: {% widthratio stats.month_pending stats.month_scheduled 100 %}%"></div>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-4 text-[10px] text-slate-500 font-medium">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> ჩატარებული</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-400"></span> გაცდენა</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-300"></span> მოლოდინში</span>
+            </div>
+        </div>
+
+        <!-- Next Upcoming Slot -->
+        {% if stats.next_slot %}
+        <div class="flex items-center justify-between p-3 rounded-xl bg-teal-50/80 border border-teal-200/60">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="text-lg">🕐</span>
+                <div class="min-w-0">
+                    <div class="text-[11px] font-bold text-teal-800">მომდევნო ვიზიტი</div>
+                    <div class="text-xs font-black text-slate-900 truncate">
+                        {{ stats.next_slot.beneficiary.full_name }} — {{ stats.next_slot.therapy_type }}
+                    </div>
+                    <div class="text-[11px] text-teal-700 font-semibold">
+                        {{ stats.next_slot.date|date:"d.m.Y" }}, {{ stats.next_slot.start_time|time:"H:i" }}
+                    </div>
+                </div>
+            </div>
+            <a href="{% url 'beneficiary_session_create' stats.next_slot.beneficiary.id %}?slot_id={{ stats.next_slot.id }}"
+               class="shrink-0 px-3 py-1.5 bg-[#006a61] hover:bg-[#005049] text-white rounded-xl text-[11px] font-bold transition">
+                ჩაწერა →
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Today's Compact Schedule Strip -->
     {% if today_slots %}
     <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">

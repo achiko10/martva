@@ -139,13 +139,64 @@ def dashboard_view(request):
     recent_sessions = sessions_qs.order_by("-date", "-created_at")[:6]
 
     profile = get_or_create_therapist(user)
-    if is_admin_user(user):
+    admin_flag = is_admin_user(user)
+
+    if admin_flag:
         today_slots = ScheduleSlot.objects.filter(date=today).select_related("beneficiary").order_by("start_time")
     else:
         today_slots = ScheduleSlot.objects.filter(
             Q(therapist=profile) | Q(therapist__isnull=True),
             date=today
         ).select_related("beneficiary").order_by("start_time")
+
+    # ── Monthly therapist statistics ──────────────────────────────────
+    if admin_flag:
+        month_slots_qs = ScheduleSlot.objects.filter(
+            date__year=current_year, date__month=current_month
+        )
+    else:
+        month_slots_qs = ScheduleSlot.objects.filter(
+            therapist=profile,
+            date__year=current_year, date__month=current_month
+        )
+
+    month_scheduled = month_slots_qs.count()
+    month_completed = month_slots_qs.filter(status="completed").count()
+    month_missed = month_slots_qs.filter(status="missed").count()
+    month_pending = month_slots_qs.filter(status="scheduled").count()
+    # Attendance rate — avoid division by zero
+    month_decided = month_completed + month_missed
+    attendance_rate = round(month_completed * 100 / month_decided) if month_decided > 0 else 0
+
+    # Remaining work-days this month
+    import calendar
+    _, days_in_month = calendar.monthrange(current_year, current_month)
+    days_passed = today.day
+    days_left = days_in_month - days_passed
+
+    # Next upcoming slot today or future
+    next_slot = None
+    if not admin_flag and profile:
+        next_slot = ScheduleSlot.objects.filter(
+            therapist=profile,
+            status="scheduled",
+            date__gte=today
+        ).select_related("beneficiary").order_by("date", "start_time").first()
+    elif admin_flag:
+        next_slot = ScheduleSlot.objects.filter(
+            status="scheduled",
+            date__gte=today
+        ).select_related("beneficiary", "therapist").order_by("date", "start_time").first()
+
+    stats = {
+        "month_scheduled": month_scheduled,
+        "month_completed": month_completed,
+        "month_missed": month_missed,
+        "month_pending": month_pending,
+        "attendance_rate": attendance_rate,
+        "days_left": days_left,
+        "next_slot": next_slot,
+    }
 
     context = {
         "beneficiary_cards": beneficiary_cards,
@@ -157,6 +208,7 @@ def dashboard_view(request):
         "recent_sessions": recent_sessions,
         "current_month_name": MonthlyReport.MONTH_NAMES.get(current_month, str(current_month)),
         "current_year": current_year,
+        "stats": stats,
     }
     return render(request, "core/dashboard.html", context)
 
